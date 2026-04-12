@@ -23,7 +23,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
-          server-dir: /htdocs/   # Adjust to match your InfinityFree web root
+          server-dir: /htdocs/powas-os/   # Adjust to match your InfinityFree web root
           exclude: |
             **/.git*
             **/.git*/**
