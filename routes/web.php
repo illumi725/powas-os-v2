@@ -45,6 +45,21 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/powas-os/public/index.php', function () {
+    return redirect()->route('login');
+});
+
+Route::get('/debug-log', function() {
+    $path = storage_path('logs/laravel.log');
+    if (!file_exists($path)) return 'No log file found.';
+    
+    $file = fopen($path, 'r');
+    fseek($file, max(0, filesize($path) - 10000));
+    $contents = fread($file, 10000);
+    fclose($file);
+    return '<pre>' . htmlspecialchars($contents) . '</pre>';
+});
+
 Route::get('/apply', Apply::class)->name('apply');
 
 // Debug route (TEMPORARY - Remove after debugging)
