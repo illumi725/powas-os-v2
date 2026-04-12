@@ -145,8 +145,13 @@ class DatabaseBackup extends Component
                 throw new \Exception('Backup file not found!');
             }
 
-            $sql = File::get($filePath);
-            DB::connection()->getPdo()->exec($sql);
+            $dbHost = config('database.connections.mysql.host');
+            $dbName = config('database.connections.mysql.database');
+            $dbUser = config('database.connections.mysql.username');
+            $dbPass = config('database.connections.mysql.password');
+
+            $dump = new Mysqldump("mysql:host={$dbHost};dbname={$dbName}", $dbUser, $dbPass);
+            $dump->restore($filePath);
 
             $this->showingConfirmRestoreModal = false;
             $this->selectedBackup = null;
