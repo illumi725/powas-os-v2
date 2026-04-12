@@ -35,3 +35,5 @@ jobs:
             **/storage/framework/sessions/**
             **/storage/framework/views/**
             **/database/migrations/**
+            **/bootstrap/cache/**
+            index.php
