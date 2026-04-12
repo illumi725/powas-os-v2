@@ -119,6 +119,7 @@ Route::middleware([
         Route::get('/transactions-view/{powasID}', [TransactionsListController::class, 'index'])->name('view-transactions');
         Route::get('/members', [ShowMembersListController::class, 'index'])->name('members');
         Route::get('/members/add/{powasID}', [AddMemberController::class, 'index'])->name('members.add');
+        Route::get('/applications', [\App\Http\Controllers\POWAS\ShowApplicationListController::class, 'index'])->name('applications');
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
         // Provide mapping for powas.show
         Route::get('/powas/manage/{powas_id}', [ManagePowasController::class, 'index'])->name('powas.show');

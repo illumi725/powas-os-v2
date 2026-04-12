@@ -13,6 +13,7 @@
         "doctrine/dbal": "^3.5.1",
         "dompdf/dompdf": "^2.0",
         "guzzlehttp/guzzle": "^7.2",
+        "ifsnop/mysqldump-php": "*",
         "laravel/framework": "^10.10",
         "laravel/jetstream": "^4.0",
         "laravel/sanctum": "^3.3",

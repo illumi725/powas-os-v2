@@ -12,6 +12,12 @@
             </div>
 
             <x-section-border />
+
+            <div class="mt-10 sm:mt-0">
+                @livewire('settings.database-backup')
+            </div>
+
+            <x-section-border />
         </div>
     </div>
 </x-app-layout>
