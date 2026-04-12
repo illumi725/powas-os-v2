@@ -146,7 +146,7 @@ class DatabaseBackup extends Component
             }
 
             $sql = File::get($filePath);
-            DB::unprepared($sql);
+            DB::connection()->getPdo()->exec($sql);
 
             $this->showingConfirmRestoreModal = false;
             $this->selectedBackup = null;
