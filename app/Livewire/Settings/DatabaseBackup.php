@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Artisan;
 use Ifsnop\Mysqldump\Mysqldump;
 
 class DatabaseBackup extends Component
@@ -74,7 +75,8 @@ class DatabaseBackup extends Component
             $dbUser = config('database.connections.mysql.username');
             $dbPass = config('database.connections.mysql.password');
 
-            $dump = new Mysqldump("mysql:host={$dbHost};dbname={$dbName}", $dbUser, $dbPass);
+            $dumpSettings = ['add-drop-table' => true];
+            $dump = new Mysqldump("mysql:host={$dbHost};dbname={$dbName}", $dbUser, $dbPass, $dumpSettings);
             $dump->start($filePath);
 
             $this->loadBackups();
@@ -149,6 +151,9 @@ class DatabaseBackup extends Component
             $dbName = config('database.connections.mysql.database');
             $dbUser = config('database.connections.mysql.username');
             $dbPass = config('database.connections.mysql.password');
+
+            // Wipe database before restoring because older backups lack DROP TABLE commands
+            Artisan::call('db:wipe', ['--force' => true]);
 
             $dump = new Mysqldump("mysql:host={$dbHost};dbname={$dbName}", $dbUser, $dbPass);
             $dump->restore($filePath);
