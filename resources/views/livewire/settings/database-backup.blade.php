@@ -41,9 +41,9 @@
                                 <x-table.tbody-td class="pl-2">{{ $backup['name'] }}</x-table.tbody-td>
                                 <x-table.tbody-td class="text-center">{{ $backup['size'] }}</x-table.tbody-td>
                                 <x-table.tbody-td class="text-center">
-                                    <button wire:click="downloadBackup('{{ $backup['name'] }}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Download">
+                                    <a href="{{ route('settings.backup.download', ['fileName' => $backup['name']]) }}" class="text-blue-500 hover:text-blue-700 mx-1" title="Download">
                                         <i class="fa-solid fa-download"></i>
-                                    </button>
+                                    </a>
                                     <button wire:click="confirmRestore('{{ $backup['name'] }}')" class="text-green-500 hover:text-green-700 mx-1" title="Restore">
                                         <i class="fa-solid fa-clock-rotate-left"></i>
                                     </button>

@@ -94,25 +94,6 @@ class DatabaseBackup extends Component
         }
     }
 
-    public function downloadBackup($fileName)
-    {
-        if (!auth()->user()->hasRole('admin')) {
-            abort(403);
-        }
-
-        $filePath = storage_path('app/backups/' . $fileName);
-        
-        if (File::exists($filePath)) {
-            return response()->download($filePath);
-        }
-        
-        $this->dispatch('backupMessage', [
-            'message' => 'Backup file not found!',
-            'messageType' => 'error',
-            'position' => 'top-right'
-        ]);
-    }
-
     public function confirmRestore($fileName)
     {
         if (!auth()->user()->hasRole('admin')) {
