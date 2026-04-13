@@ -20,6 +20,14 @@
                 wire:loading.attr="disabled">
                 {{ __('Books of Accounts') }}
             </x-button-link>
+
+            <button
+                id="bulkPrintVouchersBtn"
+                wire:click="showBulkPrintModal"
+                class="uppercase text-xs font-bold bg-purple-500 text-white my-2 py-1.5 px-4 rounded-full shadow-md hover:bg-purple-600 transition"
+                wire:loading.attr="disabled">
+                🖨 {{ __('Bulk Print Vouchers') }}
+            </button>
         </div>
         <div class="w-full md:flex md:justify-end md:items-center gap-2">
             <x-label class="block md:inline" value="{{ __('Transaction Month: ') }}" />
@@ -188,3 +196,58 @@
         @endif
     </div>
 </div>
+
+{{-- Bulk Print Vouchers Modal --}}
+<x-dialog-modal wire:model.live="showingBulkPrintModal">
+    <x-slot name="title">
+        🖨 {{ __('Bulk Print Vouchers') }}
+    </x-slot>
+
+    <x-slot name="content">
+        <p class="text-sm text-gray-600 mb-4">
+            {{ __('Select a date range to generate a printable view of all vouchers within that period.') }}
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <x-label for="bulkPrintStartDate" value="{{ __('Start Date') }}" />
+                <x-input
+                    id="bulkPrintStartDate"
+                    class="mt-1 block w-full"
+                    type="date"
+                    wire:model="bulkPrintStartDate" />
+                <x-input-error for="bulkPrintStartDate" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="bulkPrintEndDate" value="{{ __('End Date') }}" />
+                <x-input
+                    id="bulkPrintEndDate"
+                    class="mt-1 block w-full"
+                    type="date"
+                    wire:model="bulkPrintEndDate" />
+                <x-input-error for="bulkPrintEndDate" class="mt-2" />
+            </div>
+        </div>
+    </x-slot>
+
+    <x-slot name="footer">
+        <x-secondary-button wire:click="$set('showingBulkPrintModal', false)" wire:loading.attr="disabled">
+            {{ __('Cancel') }}
+        </x-secondary-button>
+
+        <x-button
+            class="ms-3"
+            wire:click="generateBulkPrintUrl"
+            wire:loading.attr="disabled">
+            {{ __('Open Print View') }}
+        </x-button>
+    </x-slot>
+</x-dialog-modal>
+
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        Livewire.on('open-bulk-print', ({ url }) => {
+            window.open(url, '_blank', 'toolbar=0,scrollbars=1,status=1,resizable=1');
+            @this.set('showingBulkPrintModal', false);
+        });
+    });
+</script>

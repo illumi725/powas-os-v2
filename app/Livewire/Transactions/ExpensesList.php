@@ -24,6 +24,12 @@ class ExpensesList extends Component
     public $transactionsList = [];
     public $voucherLists = [];
 
+    // Bulk print modal
+    public $showingBulkPrintModal = false;
+    public $bulkPrintStartDate;
+    public $bulkPrintEndDate;
+    public $bulkPrintUrl = '';
+
     protected $pageName = 'expenses-list';
 
     public function mount($powasID, $powas)
@@ -143,5 +149,31 @@ class ExpensesList extends Component
     public function render()
     {
         return view('livewire.transactions.expenses-list');
+    }
+
+    public function showBulkPrintModal()
+    {
+        $this->bulkPrintStartDate = '';
+        $this->bulkPrintEndDate = '';
+        $this->bulkPrintUrl = '';
+        $this->showingBulkPrintModal = true;
+    }
+
+    public function generateBulkPrintUrl()
+    {
+        $this->validate([
+            'bulkPrintStartDate' => 'required|date',
+            'bulkPrintEndDate'   => 'required|date|after_or_equal:bulkPrintStartDate',
+        ], [
+            'bulkPrintEndDate.after_or_equal' => 'End date must be on or after the start date.',
+        ]);
+
+        $this->bulkPrintUrl = route('bulk-print-vouchers', [
+            'powasID'   => $this->powasID,
+            'startDate' => $this->bulkPrintStartDate,
+            'endDate'   => $this->bulkPrintEndDate,
+        ]);
+
+        $this->dispatch('open-bulk-print', url: $this->bulkPrintUrl);
     }
 }

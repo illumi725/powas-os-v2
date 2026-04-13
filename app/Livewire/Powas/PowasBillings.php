@@ -381,7 +381,7 @@ class PowasBillings extends Component
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (Reconnection) from ' . $member->lastname . ', ' . $member->firstname,
+                        'description' => 'Cash received from ' . $member->lastname . ', ' . $member->firstname . ' for Reconnection Fee',
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $calculatedReconnectionFee,
                         'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -418,7 +418,7 @@ class PowasBillings extends Component
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (Penalty) from ' . $member->lastname . ', ' . $member->firstname,
+                        'description' => 'Cash received from ' . $member->lastname . ', ' . $member->firstname . ' for Penalty',
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $calculatedPenalty,
                         'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -449,7 +449,7 @@ class PowasBillings extends Component
                         Transactions::create([
                             'trxn_id' => CustomNumberFactory::getRandomID(),
                             'account_number' => $cashOnHandAccount->account_number,
-                            'description' => 'Cash (Penalty) from ' . $member->lastname,
+                            'description' => 'Cash received from ' . $member->lastname . ', ' . $member->firstname . ' for Penalty',
                             'journal_entry_number' => $journalEntryNumber,
                             'amount' => $bill->penalty,
                             'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -498,7 +498,7 @@ class PowasBillings extends Component
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (MS) from ' . $member->lastname . ', ' . $member->firstname,
+                        'description' => 'Cash received from ' . $member->lastname . ', ' . $member->firstname . ' for Micro-savings',
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $microSavingsAmt,
                         'transaction_side' => $cashOnHandAccount->normal_balance,

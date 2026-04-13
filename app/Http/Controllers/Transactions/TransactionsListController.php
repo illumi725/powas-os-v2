@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Transactions;
 
 use App\Http\Controllers\Controller;
 use App\Models\Powas;
+use App\Models\Vouchers;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -48,6 +49,26 @@ class TransactionsListController extends Controller
             'powasID' => $powasID,
             'powas' => $powas,
             'voucherID' => $voucherID,
+        ]);
+    }
+
+    public function bulkPrintVouchers($powasID, $startDate, $endDate): View
+    {
+        $powas = Powas::find($powasID);
+
+        $vouchers = Vouchers::with('voucherparticulars')
+            ->where('powas_id', $powasID)
+            ->whereBetween('voucher_date', [$startDate, $endDate])
+            ->orderBy('voucher_date', 'asc')
+            ->orderBy('voucher_number', 'asc')
+            ->get();
+
+        return view('voucher.voucher-bulk-print', [
+            'powasID'   => $powasID,
+            'powas'     => $powas,
+            'vouchers'  => $vouchers,
+            'startDate' => $startDate,
+            'endDate'   => $endDate,
         ]);
     }
 }
