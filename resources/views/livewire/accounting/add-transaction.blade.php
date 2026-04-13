@@ -146,7 +146,7 @@
                             type="file"
                             accept="image/*"
                             class="block mt-1 w-full text-sm text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
-                            onchange="powasCompressReceipt(this)">
+                            onchange="powasCompressReceipt(this, @this)">
                         <p id="receiptCompressStatus" class="mt-1 text-xs text-gray-500 hidden"></p>
                         @if ($receiptImage)
                             <div class="mt-3 w-full text-center">
@@ -321,7 +321,7 @@
 </div>
 
 <script>
-function powasCompressReceipt(input) {
+function powasCompressReceipt(input, component) {
     const file = input.files[0];
     if (!file) return;
 
@@ -335,11 +335,11 @@ function powasCompressReceipt(input) {
     // If already small enough, upload directly without re-encoding
     if (file.size <= TARGET_KB * 1024) {
         statusEl.textContent = '📎 Uploading...';
-        @this.upload(
+        component.upload(
             'receiptImage', file,
             () => { statusEl.textContent = '✅ Image ready (' + (file.size / 1024).toFixed(0) + ' KB)'; },
             () => { statusEl.textContent = '❌ Upload failed. Try again.'; },
-            (pct) => { statusEl.textContent   = '⏳ Uploading... ' + pct + '%'; }
+            (pct) => { statusEl.textContent = '⏳ Uploading... ' + pct + '%'; }
         );
         return;
     }
@@ -367,7 +367,7 @@ function powasCompressReceipt(input) {
                 const kb = (compressed.size / 1024).toFixed(0);
                 statusEl.textContent = '⏳ Uploading compressed image (' + kb + ' KB)...';
 
-                @this.upload(
+                component.upload(
                     'receiptImage', compressed,
                     () => { statusEl.textContent = '✅ Image ready (' + kb + ' KB)'; },
                     () => { statusEl.textContent = '❌ Upload failed. Try again.'; },
