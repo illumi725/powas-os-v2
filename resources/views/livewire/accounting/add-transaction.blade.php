@@ -140,12 +140,17 @@
 
                 @if ($transactionType == 'payments' || $transactionType == 'expenses')
                     <div class="mt-4">
-                        <x-label for="receiptImage" value="{{ __('Upload Receipt Image') }}" />
-                        <x-input id="receiptImage" class="block mt-1 w-full" type="file" wire:model="receiptImage"
-                            accept="image/*" />
+                        <x-label for="receiptImageRaw" value="{{ __('Upload Receipt Image') }}" />
+                        <input
+                            id="receiptImageRaw"
+                            type="file"
+                            accept="image/*"
+                            class="block mt-1 w-full text-sm text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                            onchange="powasCompressReceipt(this)">
+                        <p id="receiptCompressStatus" class="mt-1 text-xs text-gray-500 hidden"></p>
                         @if ($receiptImage)
                             <div class="mt-3 w-full text-center">
-                                <img class="w-96" src="{{ $receiptImage->temporaryUrl() }}" alt="Preview">
+                                <img class="w-96 mx-auto" src="{{ $receiptImage->temporaryUrl() }}" alt="Preview">
                             </div>
                         @endif
                         <x-input-error for="receiptImage" class="mt-1" />
@@ -314,3 +319,64 @@
         @endslot
     </x-dialog-modal>
 </div>
+
+<script>
+function powasCompressReceipt(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('receiptCompressStatus');
+    statusEl.classList.remove('hidden');
+
+    const TARGET_KB = 1024; // 1 MB target
+    const MAX_DIM   = 1600; // max pixel dimension
+    const QUALITY   = 0.80; // JPEG quality
+
+    // If already small enough, upload directly without re-encoding
+    if (file.size <= TARGET_KB * 1024) {
+        statusEl.textContent = '📎 Uploading...';
+        @this.upload(
+            'receiptImage', file,
+            () => { statusEl.textContent = '✅ Image ready (' + (file.size / 1024).toFixed(0) + ' KB)'; },
+            () => { statusEl.textContent = '❌ Upload failed. Try again.'; },
+            (pct) => { statusEl.textContent   = '⏳ Uploading... ' + pct + '%'; }
+        );
+        return;
+    }
+
+    statusEl.textContent = '⏳ Compressing image...';
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+            let w = img.width, h = img.height;
+
+            // Scale down proportionally
+            if (w > MAX_DIM || h > MAX_DIM) {
+                if (w >= h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+                else        { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+            canvas.toBlob(function (blob) {
+                const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+                const kb = (compressed.size / 1024).toFixed(0);
+                statusEl.textContent = '⏳ Uploading compressed image (' + kb + ' KB)...';
+
+                @this.upload(
+                    'receiptImage', compressed,
+                    () => { statusEl.textContent = '✅ Image ready (' + kb + ' KB)'; },
+                    () => { statusEl.textContent = '❌ Upload failed. Try again.'; },
+                    (pct) => { statusEl.textContent = '⏳ Uploading... ' + pct + '%'; }
+                );
+            }, 'image/jpeg', QUALITY);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+</script>

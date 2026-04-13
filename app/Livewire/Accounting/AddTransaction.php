@@ -116,7 +116,7 @@ class AddTransaction extends Component
         if ($this->transactionType == 'expenses' || $this->transactionType == 'payments') {
             $this->validate([
                 'transactionDescription' => 'required',
-                'receiptImage' => 'required|image|max:2048',
+                'receiptImage' => 'required|image|max:5120',
             ]);
         };
 
@@ -1306,10 +1306,10 @@ class AddTransaction extends Component
         $normalBalance = '';
 
         if ($this->transactionType == 'receipts') {
-            $description = 'Unclaimed Allowance from ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
+            $description = 'Unclaimed Allowances received from ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
             $normalBalance = 'CREDIT';
         } elseif ($this->transactionType == 'payments') {
-            $description = 'Unclaimed Allowance paid to ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
+            $description = 'Unclaimed Allowances paid to ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
             $normalBalance = 'DEBIT';
         }
 
@@ -1330,6 +1330,24 @@ class AddTransaction extends Component
         }
 
         $journalEntryNumber = CustomNumberFactory::journalEntryNumber($this->powasID, $this->transactionDate);
+
+        // Guard: Prevent claiming more than available unclaimed allowances balance
+        if ($this->transactionType == 'payments') {
+            $balance209 = Transactions::where('powas_id', $this->powasID)
+                ->where('account_number', '209')
+                ->selectRaw("SUM(CASE WHEN transaction_side = 'CREDIT' THEN amount ELSE -amount END) as balance")
+                ->value('balance') ?? 0;
+
+            if ((float) $this->transactionAmount > (float) $balance209) {
+                $this->dispatch('alert', [
+                    'message' => 'Insufficient Unclaimed Allowances balance. Available: ₱' . number_format($balance209, 2),
+                    'messageType' => 'error',
+                    'position' => 'top-right',
+                ]);
+                $this->showingConfirmAddTrasactionModal = false;
+                return;
+            }
+        }
 
         // Unclaimed Allowances
         Transactions::create([
@@ -1356,28 +1374,6 @@ class AddTransaction extends Component
         if ($this->transactionType == 'receipts') {
             $description = 'Cash received from ' . $this->receiveFromOrPaidTo . ' for '  . strtoupper($this->transactionDescription);
             $normalBalance = 'DEBIT';
-
-            $this->reset([
-                'trxnIDs',
-                'printIDs',
-            ]);
-
-            $this->trxnIDs[] = $newTransactionID;
-            $printNewID = CustomNumberFactory::getRandomID();
-            $this->receiptNumber = CustomNumberFactory::receipt($this->powasID, $this->transactionDate);
-
-            IssuedReceipts::create([
-                'print_id' => $printNewID,
-                'receipt_number' => $this->receiptNumber,
-                'trxn_id' => $newTransactionID,
-                'powas_id' => $this->powasID,
-                'description' => strtoupper($this->transactionDescription),
-                'transaction_date' => $this->transactionDate,
-            ]);
-
-            $this->printIDs[] = $printNewID;
-
-            $this->printing = true;
         } elseif ($this->transactionType == 'payments') {
             $description = 'Cash paid to ' . $this->receiveFromOrPaidTo . ' for '  . strtoupper($this->transactionDescription);
             $normalBalance = 'CREDIT';
