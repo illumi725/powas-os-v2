@@ -151,6 +151,9 @@ class BillingReceipt extends Component
 
             $this->receipt_paper_size = $this->powasSettings->receipt_paper_size;
             $this->old_paper_size = $this->powasSettings->receipt_paper_size;
+
+            // Auto-generate OR Number
+            $this->generateOrNumber($this->powasSettings);
         } else {
             foreach ($billingIDs as $billingID) {
                 $thisBilling = Billings::find($billingID);
@@ -175,6 +178,32 @@ class BillingReceipt extends Component
             }
             $this->receipt_paper_size = '105mm';
         }
+    }
+
+    /**
+     * Increments the serial number in powas_settings and returns the new OR number.
+     * Padded to match the original serial number width (e.g. 0000001 -> 0000002).
+     */
+    protected function generateOrNumber(PowasSettings $settings): void
+    {
+        $padLength = strlen($settings->serial_number_start ?? '0000001');
+        $currentRaw = $settings->current_serial_number ?? $settings->serial_number_start ?? '0000001';
+        $endRaw = $settings->serial_number_end ?? '9999999';
+
+        $current = (int) $currentRaw;
+        $end = (int) $endRaw;
+
+        // If exhausted, do not advance — the admin must update the ATP range.
+        if ($current >= $end) {
+            $settings->current_serial_number = str_pad((string)$current, $padLength, '0', STR_PAD_LEFT);
+            $settings->save();
+            return;
+        }
+
+        $next = $current + 1;
+        $nextFormatted = str_pad((string)$next, $padLength, '0', STR_PAD_LEFT);
+        $settings->current_serial_number = $nextFormatted;
+        $settings->save();
     }
 
     public function render()

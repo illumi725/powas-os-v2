@@ -114,6 +114,75 @@
             </x-combobox>
             <x-input-error for="powasSettings.receipt_paper_size" class="mt-2" />
         </div>
+
+        {{-- ATP Configuration Section --}}
+        <div class="col-span-6 sm:col-span-4 mt-8">
+            <p class="text-base font-semibold text-gray-700 border-b pb-2">Authority to Print (ATP) Configuration</p>
+            <p class="text-xs text-gray-500 mt-1 mb-3">Required for BIR CAS compliance. Enter the ATP details as issued by the BIR for your accredited printer.</p>
+        </div>
+        <div class="col-span-6 sm:col-span-4 mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <x-label for="atp_number" value="{{ __('ATP Number') }}" />
+                <x-input id="atp_number" type="text" class="mt-1 block w-full" wire:model="powasSettings.atp_number" autocomplete="off" placeholder="e.g. ATP-RDO-12345"/>
+                <x-input-error for="powasSettings.atp_number" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="atp_date_issued" value="{{ __('ATP Date Issued') }}" />
+                <x-input id="atp_date_issued" type="date" class="mt-1 block w-full" wire:model="powasSettings.atp_date_issued" autocomplete="off" />
+                <x-input-error for="powasSettings.atp_date_issued" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="atp_valid_until" value="{{ __('ATP Valid Until') }}" />
+                <x-input id="atp_valid_until" type="date" class="mt-1 block w-full" wire:model="powasSettings.atp_valid_until" autocomplete="off" />
+                <x-input-error for="powasSettings.atp_valid_until" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="printer_name" value="{{ __('Printer / Accredited Printing Company Name') }}" />
+                <x-input id="printer_name" type="text" class="mt-1 block w-full" wire:model="powasSettings.printer_name" autocomplete="off" />
+                <x-input-error for="powasSettings.printer_name" class="mt-2" />
+            </div>
+            <div class="md:col-span-2">
+                <x-label for="printer_address" value="{{ __('Printer Address') }}" />
+                <x-input id="printer_address" type="text" class="mt-1 block w-full" wire:model="powasSettings.printer_address" autocomplete="off" />
+                <x-input-error for="powasSettings.printer_address" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="printer_tin" value="{{ __('Printer TIN') }}" />
+                <x-input id="printer_tin" type="text" class="mt-1 block w-full" wire:model="powasSettings.printer_tin" autocomplete="off" placeholder="e.g. 123-456-789-000"/>
+                <x-input-error for="powasSettings.printer_tin" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="printer_accreditation_no" value="{{ __('Printer BIR Accreditation No.') }}" />
+                <x-input id="printer_accreditation_no" type="text" class="mt-1 block w-full" wire:model="powasSettings.printer_accreditation_no" autocomplete="off" />
+                <x-input-error for="powasSettings.printer_accreditation_no" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="printer_accreditation_date" value="{{ __('Printer Accreditation Date') }}" />
+                <x-input id="printer_accreditation_date" type="date" class="mt-1 block w-full" wire:model="powasSettings.printer_accreditation_date" autocomplete="off" />
+                <x-input-error for="powasSettings.printer_accreditation_date" class="mt-2" />
+            </div>
+        </div>
+        <div class="col-span-6 sm:col-span-4 mt-4">
+            <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Serial Number Range</p>
+            <p class="text-xs text-gray-500 mb-3">As printed on your ATP-approved booklet. The system will use this range to generate sequential OR numbers automatically.</p>
+        </div>
+        <div class="col-span-6 sm:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <x-label for="serial_number_start" value="{{ __('Serial Number (Start)') }}" />
+                <x-input id="serial_number_start" type="text" class="mt-1 block w-full" wire:model="powasSettings.serial_number_start" autocomplete="off" placeholder="e.g. 0000001"/>
+                <x-input-error for="powasSettings.serial_number_start" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="serial_number_end" value="{{ __('Serial Number (End)') }}" />
+                <x-input id="serial_number_end" type="text" class="mt-1 block w-full" wire:model="powasSettings.serial_number_end" autocomplete="off" placeholder="e.g. 0500000"/>
+                <x-input-error for="powasSettings.serial_number_end" class="mt-2" />
+            </div>
+            <div>
+                <x-label for="current_serial_number" value="{{ __('Current Serial Number (Last Used)') }}" />
+                <x-input id="current_serial_number" type="text" class="mt-1 block w-full" wire:model="powasSettings.current_serial_number" autocomplete="off" placeholder="Leave blank if starting fresh" />
+                <x-input-error for="powasSettings.current_serial_number" class="mt-2" />
+            </div>
+        </div>
     </x-slot>
     <x-slot name="actions">
         @can('edit powas preferences')

@@ -30,6 +30,16 @@ class TransactionsListController extends Controller
         ]);
     }
 
+    public function booksOfAccounts($powasID): View
+    {
+        $powas = Powas::find($powasID);
+
+        return view('accounting.books', [
+            'powasID' => $powasID,
+            'powas'   => $powas,
+        ]);
+    }
+
     public function printVoucher($powasID, $voucherID = null): View
     {
         $powas = Powas::find($powasID);

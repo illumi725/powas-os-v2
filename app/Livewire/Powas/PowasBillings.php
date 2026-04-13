@@ -280,7 +280,7 @@ class PowasBillings extends Component
         $billsReceivableAccount = ChartOfAccounts::where('account_type', 'ASSET')->where('account_name', 'LIKE', '%' . 'BILLS RECEIVABLES' . '%')->first();
 
         if (!$cashOnHandAccount || !$billsReceivableAccount) {
-             $this->dispatch('alert', [
+            $this->dispatch('alert', [
                 'message' => 'Critical: Missing Chart of Accounts (Cash or Receivables). Cannot proceed.',
                 'messageType' => 'error',
                 'position' => 'top-right',
@@ -292,7 +292,7 @@ class PowasBillings extends Component
             DB::beginTransaction();
             try {
                 $bill = Billings::find($billId);
-                
+
                 // Skip already paid
                 if ($bill->bill_status == 'PAID') {
                     continue;
@@ -304,14 +304,14 @@ class PowasBillings extends Component
 
                 // 1. Calculate Fees (Replicates showAddPaymentModal logic)
                 $daysPassed = Carbon::parse($bill->due_date)->diffInDays(Carbon::parse($this->bulkPaymentDate), false);
-                
+
                 $calculatedPenalty = 0;
                 if ($this->powasSettings->penalty_per_day > 0) {
-                     if ($daysPassed > 0 && $daysPassed < $this->powasSettings->days_before_disconnection) {
+                    if ($daysPassed > 0 && $daysPassed < $this->powasSettings->days_before_disconnection) {
                         $calculatedPenalty = $this->powasSettings->penalty_per_day * $daysPassed;
-                     } elseif ($daysPassed >= $this->powasSettings->days_before_disconnection) {
+                    } elseif ($daysPassed >= $this->powasSettings->days_before_disconnection) {
                         $calculatedPenalty = ($this->powasSettings->days_before_disconnection - 1) * $this->powasSettings->penalty_per_day;
-                     }
+                    }
                 }
 
                 $calculatedReconnectionFee = 0;
@@ -327,21 +327,21 @@ class PowasBillings extends Component
                 if ($this->powasSettings->members_micro_savings > 0) {
                     $microSavingsAmt = $this->powasSettings->members_micro_savings;
                 }
-                
+
                 // Check Excess Payments
                 $excessAmt = 0;
                 $previousBill = Billings::where('member_id', $bill->member_id)
                     ->where('billing_month', Carbon::parse($bill->billing_month)->subMonth()->format('Y-m-01'))
                     ->first();
-                
+
                 if ($previousBill) {
-                     $excessTrans = Transactions::where('paid_to', $previousBill->billing_id)
+                    $excessTrans = Transactions::where('paid_to', $previousBill->billing_id)
                         ->where('account_number', '208') // Excess Payments
                         ->where('transaction_side', 'CREDIT')
                         ->first();
-                     if ($excessTrans) {
-                         $excessAmt = $excessTrans->amount;
-                     }
+                    if ($excessTrans) {
+                        $excessAmt = $excessTrans->amount;
+                    }
                 }
 
                 // Total Cash Calculation
@@ -360,7 +360,7 @@ class PowasBillings extends Component
                 $journalEntryNumber = CustomNumberFactory::journalEntryNumber($this->powasID, $this->bulkPaymentDate);
 
                 // 4. Create Transactions
-                
+
                 // Reconnection Fee
                 if ($hasReconnectionFee && $reconnectionFeeAccount) {
                     Transactions::create([
@@ -381,7 +381,7 @@ class PowasBillings extends Component
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (Reconnection) from ' . $member->lastname,
+                        'description' => 'Cash (Reconnection) from ' . $member->lastname . ', ' . $member->firstname,
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $calculatedReconnectionFee,
                         'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -414,11 +414,11 @@ class PowasBillings extends Component
                         'recorded_by_id' => Auth::user()->user_id,
                         'transaction_date' => $this->bulkPaymentDate,
                     ]);
-                     // Cash for Penalty
+                    // Cash for Penalty
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (Penalty) from ' . $member->lastname,
+                        'description' => 'Cash (Penalty) from ' . $member->lastname . ', ' . $member->firstname,
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $calculatedPenalty,
                         'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -435,11 +435,11 @@ class PowasBillings extends Component
                         Transactions::create([
                             'trxn_id' => CustomNumberFactory::getRandomID(),
                             'account_number' => $penaltiesAccount->account_number,
-                            'description' => 'Penalty from ' . $member->lastname,
+                            'description' => 'Penalty from ' . $member->lastname . ', ' . $member->firstname,
                             'journal_entry_number' => $journalEntryNumber,
                             'amount' => $bill->penalty, // Paying the existing penalty
                             'transaction_side' => $penaltiesAccount->normal_balance,
-                             'received_from' => $member->lastname . ', ' . $member->firstname,
+                            'received_from' => $member->lastname . ', ' . $member->firstname,
                             'paid_to' => $bill->billing_id,
                             'member_id' => $bill->member_id,
                             'powas_id' => $bill->powas_id,
@@ -480,11 +480,11 @@ class PowasBillings extends Component
                         'balance' => $msBalance + $microSavingsAmt,
                         'date_recorded' => $this->bulkPaymentDate,
                     ]);
-                    
+
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $microSavingsAccount->account_number,
-                        'description' => 'Micro-savings from ' . $member->lastname,
+                        'description' => 'Micro-savings from ' . $member->lastname . ', ' . $member->firstname,
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $microSavingsAmt,
                         'transaction_side' => $microSavingsAccount->normal_balance,
@@ -498,7 +498,7 @@ class PowasBillings extends Component
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (MS) from ' . $member->lastname,
+                        'description' => 'Cash (MS) from ' . $member->lastname . ', ' . $member->firstname,
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $microSavingsAmt,
                         'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -513,10 +513,10 @@ class PowasBillings extends Component
 
                 // Discount
                 if ($bill->discount_amount > 0 && $discountsAccount) {
-                     Transactions::create([
+                    Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $discountsAccount->account_number,
-                        'description' => 'Discount for ' . $member->lastname,
+                        'description' => 'Discount for ' . $member->lastname . ', ' . $member->firstname,
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $bill->discount_amount,
                         'transaction_side' => $discountsAccount->normal_balance,
@@ -534,7 +534,7 @@ class PowasBillings extends Component
                     Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $excessPaymentAccount->account_number,
-                        'description' => 'Excess Payments consumed by ' . $member->lastname,
+                        'description' => 'Excess Payments consumed by ' . $member->lastname . ', ' . $member->firstname,
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $excessAmt,
                         'transaction_side' => 'DEBIT',
@@ -551,7 +551,7 @@ class PowasBillings extends Component
                 Transactions::create([
                     'trxn_id' => CustomNumberFactory::getRandomID(),
                     'account_number' => $billsReceivableAccount->account_number,
-                    'description' => 'Bill payment from ' . $member->lastname,
+                    'description' => 'Bills Receivables received from ' . $member->lastname . ', ' . $member->firstname,
                     'journal_entry_number' => $journalEntryNumber,
                     'amount' => $bill->billing_amount,
                     'transaction_side' => 'CREDIT',
@@ -574,14 +574,14 @@ class PowasBillings extends Component
                 // Which simplifies to: `bill->billing_amount - bill->discount_amount - excessAmt`. 
                 // Wait, if `excessAmt` > `bill->billing_amount`, we have a problem. But typically excess is small.
                 // Let's assume exact payment of the due amount.
-                
+
                 $cashForBill = $bill->billing_amount - $bill->discount_amount - $excessAmt;
 
                 if ($cashForBill > 0) {
-                     Transactions::create([
+                    Transactions::create([
                         'trxn_id' => CustomNumberFactory::getRandomID(),
                         'account_number' => $cashOnHandAccount->account_number,
-                        'description' => 'Cash (Bill) from ' . $member->lastname,
+                        'description' => 'Cash received from ' . $member->lastname . ', ' . $member->firstname . ' for Bills Receivables',
                         'journal_entry_number' => $journalEntryNumber,
                         'amount' => $cashForBill,
                         'transaction_side' => $cashOnHandAccount->normal_balance,
@@ -593,19 +593,18 @@ class PowasBillings extends Component
                         'transaction_date' => $this->bulkPaymentDate,
                     ]);
                 }
-                
+
                 // Update Bill Status
                 $bill->bill_status = 'PAID';
                 $bill->save();
-                
+
                 $this->toPrintReceipts[] = $bill->billing_id;
-                
+
                 // Log
                 ActionLogger::dispatch('update', 'Bulk Payment: Marked bill ' . $bill->billing_id . ' as PAID', Auth::user()->user_id, 'billings', $this->powasID);
 
                 DB::commit();
                 $successCount++;
-                
             } catch (\Exception $e) {
                 DB::rollBack();
                 $errorCount++;
@@ -618,14 +617,14 @@ class PowasBillings extends Component
             'messageType' => 'info',
             'position' => 'top-right',
         ]);
-        
+
         $this->showingBulkPaymentModal = false;
         $this->selectedBillings = []; // Reset selection via checkbox?? Livewire might keep it? 
         // Better to keep selection so user sees what happened, or clear it. Usage usually implies clearing.
-        $this->selectedBillings = []; 
-        
+        $this->selectedBillings = [];
+
         $this->dispatch('transaction-added')->to(TransactionsList::class);
-        
+
         if (count($this->toPrintReceipts) > 0) {
             $this->showingConfirmPrintModal = true;
         }
@@ -903,155 +902,98 @@ class PowasBillings extends Component
     public function savePayment()
     {
         try {
-        // Validate all required chart of accounts exist first
-        $cashOnHandAccount = ChartOfAccounts::where('account_type', 'ASSET')->where('account_name', 'LIKE', '%' . 'CASH' . '%')->first();
-        if (!$cashOnHandAccount) {
-            throw new \Exception('Chart of Accounts error: CASH ON HAND account not found. Please check your chart of accounts configuration.');
-        }
-
-        $newPenalty = 0;
-        $microSavingsAmount = 0;
-
-        $previous_reading_id = $this->selectedBill->previous_reading_id;
-        $present_reading_id = $this->selectedBill->present_reading_id;
-
-        $present_reading = Readings::find($present_reading_id);
-        $previous_reading = Readings::find($previous_reading_id);
-
-        if (!$present_reading) {
-            throw new \Exception('Error: Present reading record not found (ID: ' . $present_reading_id . '). Cannot calculate usage.');
-        }
-
-        if (!$previous_reading) {
-            throw new \Exception('Error: Previous reading record not found (ID: ' . $previous_reading_id . '). Cannot calculate usage.');
-        }
-
-        // cubic_meter_used is stored in the billing record and was computed at billing time
-        // (accounting for any mid-cycle meter changes). No need to recalculate here.
-        $cubic_meter_used = $this->selectedBill->cubic_meter_used;
-
-        $this->toPrintReceipts[] = $this->selectedBill->billing_id;
-
-        $this->selectedMember = PowasMembers::join('powas_applications', 'powas_members.application_id', '=', 'powas_applications.application_id')->where('powas_members.member_id', $this->selectedBill->member_id)->first();
-
-        // Generate journal entry number ONCE for all transactions in this payment
-        $journalEntryNumber = CustomNumberFactory::journalEntryNumber($this->powasID, $this->paymentDate);
-
-        if ($this->withReconnectionFee == true) {
-            // ReconnectionFees::create([
-            //     'reconnection_id' => CustomNumberFactory::getRandomID(),
-            //     'powas_id' => $this->powasID,
-            //     'member_id' => $this->selectedBill->member_id,
-            //     // ...
-            // ]);
-
-            // ActionLogger::dispatch(...);
-
-            $reconnectionFeeAccount = ChartOfAccounts::where('account_type', 'REVENUE')->where('account_name', 'LIKE', '%' . 'RECONNECTION FEE' . '%')->first();
-            if (!$reconnectionFeeAccount) {
-                throw new \Exception('Chart of Accounts error: RECONNECTION FEE account not found.');
+            // Validate all required chart of accounts exist first
+            $cashOnHandAccount = ChartOfAccounts::where('account_type', 'ASSET')->where('account_name', 'LIKE', '%' . 'CASH' . '%')->first();
+            if (!$cashOnHandAccount) {
+                throw new \Exception('Chart of Accounts error: CASH ON HAND account not found. Please check your chart of accounts configuration.');
             }
 
-            // For Reconnection Fee
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $reconnectionFeeAccount->account_number,
-                'description' => 'Reconnection fee received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $this->reconnectionFee,
-                'transaction_side' => $reconnectionFeeAccount->normal_balance,
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
-            ]);
+            $newPenalty = 0;
+            $microSavingsAmount = 0;
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($reconnectionFeeAccount->account_name) . '</i></b> with description <b>"' . 'Reconnection Fee received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->reconnectionFee, 2) . '</b>.';
+            $previous_reading_id = $this->selectedBill->previous_reading_id;
+            $present_reading_id = $this->selectedBill->present_reading_id;
 
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+            $present_reading = Readings::find($present_reading_id);
+            $previous_reading = Readings::find($previous_reading_id);
 
-            // For Cash
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $cashOnHandAccount->account_number,
-                'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Reconnection Fee',
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $this->reconnectionFee,
-                'transaction_side' => $cashOnHandAccount->normal_balance,
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
-            ]);
-
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Reconnection Fee"</b> amounting to <b>&#8369;' . number_format($this->reconnectionFee, 2) . '</b>.';
-
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-        }
-
-        if ($this->afterDuePenalty > 0) {
-            $oldPenalty = $this->selectedBill->penalty;
-            $newPenalty = $oldPenalty + $this->afterDuePenalty;
-            $this->selectedBill->penalty = $newPenalty;
-            $this->selectedBill->save();
-
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> updated penalty from <b><i>' . number_format($oldPenalty, 2) . '</i></b> to <b><i>' . number_format($newPenalty, 2) . '</i></b> for with reference number <i><u>' . $this->selectedBill->billing_id . '</u></i> and POWAS ID <b>' . $this->powasID . '</b>.';
-
-            ActionLogger::dispatch('update', $log_message, Auth::user()->user_id, 'billings', $this->powasID);
-
-            $penaltiesAccount = ChartOfAccounts::where('account_type', 'REVENUE')->where('account_name', 'LIKE', '%' .'PENALTIES' . '%')->first();
-            if (!$penaltiesAccount) {
-                throw new \Exception('Chart of Accounts error: PENALTIES account not found.');
+            if (!$present_reading) {
+                throw new \Exception('Error: Present reading record not found (ID: ' . $present_reading_id . '). Cannot calculate usage.');
             }
 
-            // Reuse the same journal entry number for grouping
+            if (!$previous_reading) {
+                throw new \Exception('Error: Previous reading record not found (ID: ' . $previous_reading_id . '). Cannot calculate usage.');
+            }
 
-            // For Penalties
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $penaltiesAccount->account_number,
-                'description' => 'Penalty payment received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $newPenalty,
-                'transaction_side' => $penaltiesAccount->normal_balance,
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
-            ]);
+            // cubic_meter_used is stored in the billing record and was computed at billing time
+            // (accounting for any mid-cycle meter changes). No need to recalculate here.
+            $cubic_meter_used = $this->selectedBill->cubic_meter_used;
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($penaltiesAccount->account_name) . '</i></b> with description <b>"' . 'Penalty payment received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($newPenalty, 2) . '</b>.';
+            $this->toPrintReceipts[] = $this->selectedBill->billing_id;
 
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+            $this->selectedMember = PowasMembers::join('powas_applications', 'powas_members.application_id', '=', 'powas_applications.application_id')->where('powas_members.member_id', $this->selectedBill->member_id)->first();
 
-            // For Cash
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $cashOnHandAccount->account_number,
-                'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Penalty',
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $newPenalty,
-                'transaction_side' => $cashOnHandAccount->normal_balance,
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
-            ]);
+            // Generate journal entry number ONCE for all transactions in this payment
+            $journalEntryNumber = CustomNumberFactory::journalEntryNumber($this->powasID, $this->paymentDate);
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Penalty"</b> amounting to <b>&#8369;' . number_format($newPenalty, 2) . '</b>.';
+            if ($this->withReconnectionFee == true) {
+                // ReconnectionFees::create([
+                //     'reconnection_id' => CustomNumberFactory::getRandomID(),
+                //     'powas_id' => $this->powasID,
+                //     'member_id' => $this->selectedBill->member_id,
+                //     // ...
+                // ]);
 
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-        } else {
-            $oldPenalty = $this->selectedBill->penalty;
-            if ($oldPenalty > 0) {
+                // ActionLogger::dispatch(...);
+
+                $reconnectionFeeAccount = ChartOfAccounts::where('account_type', 'REVENUE')->where('account_name', 'LIKE', '%' . 'RECONNECTION FEE' . '%')->first();
+                if (!$reconnectionFeeAccount) {
+                    throw new \Exception('Chart of Accounts error: RECONNECTION FEE account not found.');
+                }
+
+                // For Reconnection Fee
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $reconnectionFeeAccount->account_number,
+                    'description' => 'Reconnection fee received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $this->reconnectionFee,
+                    'transaction_side' => $reconnectionFeeAccount->normal_balance,
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($reconnectionFeeAccount->account_name) . '</i></b> with description <b>"' . 'Reconnection Fee received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->reconnectionFee, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+
+                // For Cash
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $cashOnHandAccount->account_number,
+                    'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Reconnection Fee',
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $this->reconnectionFee,
+                    'transaction_side' => $cashOnHandAccount->normal_balance,
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Reconnection Fee"</b> amounting to <b>&#8369;' . number_format($this->reconnectionFee, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+            }
+
+            if ($this->afterDuePenalty > 0) {
+                $oldPenalty = $this->selectedBill->penalty;
                 $newPenalty = $oldPenalty + $this->afterDuePenalty;
                 $this->selectedBill->penalty = $newPenalty;
                 $this->selectedBill->save();
@@ -1106,51 +1048,227 @@ class PowasBillings extends Component
                 $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Penalty"</b> amounting to <b>&#8369;' . number_format($newPenalty, 2) . '</b>.';
 
                 ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-            }
-        }
-
-        if ($this->powasSettings->members_micro_savings > 0 && $this->powasSettings->members_micro_savings != null) {
-            $microSavingsAmount = floatval($this->powasSettings->members_micro_savings);
-
-            $microSavings = MicroSavings::where('member_id', $this->selectedBill->member_id)
-                ->orderByDesc('date_recorded')->first();
-
-            if ($microSavings != null) {
-                $msBalance = $microSavings->balance + $this->powasSettings->members_micro_savings;
             } else {
-                $msBalance = 0;
+                $oldPenalty = $this->selectedBill->penalty;
+                if ($oldPenalty > 0) {
+                    $newPenalty = $oldPenalty + $this->afterDuePenalty;
+                    $this->selectedBill->penalty = $newPenalty;
+                    $this->selectedBill->save();
+
+                    $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> updated penalty from <b><i>' . number_format($oldPenalty, 2) . '</i></b> to <b><i>' . number_format($newPenalty, 2) . '</i></b> for with reference number <i><u>' . $this->selectedBill->billing_id . '</u></i> and POWAS ID <b>' . $this->powasID . '</b>.';
+
+                    ActionLogger::dispatch('update', $log_message, Auth::user()->user_id, 'billings', $this->powasID);
+
+                    $penaltiesAccount = ChartOfAccounts::where('account_type', 'REVENUE')->where('account_name', 'LIKE', '%' . 'PENALTIES' . '%')->first();
+                    if (!$penaltiesAccount) {
+                        throw new \Exception('Chart of Accounts error: PENALTIES account not found.');
+                    }
+
+                    // Reuse the same journal entry number for grouping
+
+                    // For Penalties
+                    Transactions::create([
+                        'trxn_id' => CustomNumberFactory::getRandomID(),
+                        'account_number' => $penaltiesAccount->account_number,
+                        'description' => 'Penalty payment received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                        'journal_entry_number' => $journalEntryNumber,
+                        'amount' => $newPenalty,
+                        'transaction_side' => $penaltiesAccount->normal_balance,
+                        'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                        'paid_to' => $this->selectedBill->billing_id,
+                        'member_id' => $this->selectedBill->member_id,
+                        'powas_id' => $this->selectedBill->powas_id,
+                        'recorded_by_id' => Auth::user()->user_id,
+                        'transaction_date' => $this->paymentDate,
+                    ]);
+
+                    $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($penaltiesAccount->account_name) . '</i></b> with description <b>"' . 'Penalty payment received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($newPenalty, 2) . '</b>.';
+
+                    ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+
+                    // For Cash
+                    Transactions::create([
+                        'trxn_id' => CustomNumberFactory::getRandomID(),
+                        'account_number' => $cashOnHandAccount->account_number,
+                        'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Penalty',
+                        'journal_entry_number' => $journalEntryNumber,
+                        'amount' => $newPenalty,
+                        'transaction_side' => $cashOnHandAccount->normal_balance,
+                        'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                        'paid_to' => $this->selectedBill->billing_id,
+                        'member_id' => $this->selectedBill->member_id,
+                        'powas_id' => $this->selectedBill->powas_id,
+                        'recorded_by_id' => Auth::user()->user_id,
+                        'transaction_date' => $this->paymentDate,
+                    ]);
+
+                    $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Penalty"</b> amounting to <b>&#8369;' . number_format($newPenalty, 2) . '</b>.';
+
+                    ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+                }
             }
 
-            MicroSavings::create([
-                'savings_id' => CustomNumberFactory::getRandomID(),
-                'powas_id' => $this->powasID,
-                'member_id' => $this->selectedBill->member_id,
-                'recorded_by' => Auth::user()->user_id,
-                'billing_id' => $this->selectedBill->billing_id,
-                'deposit' => $this->powasSettings->members_micro_savings,
-                'balance' => $msBalance + $this->powasSettings->members_micro_savings,
-                'date_recorded' => $this->paymentDate,
-            ]);
+            if ($this->powasSettings->members_micro_savings > 0 && $this->powasSettings->members_micro_savings != null) {
+                $microSavingsAmount = floatval($this->powasSettings->members_micro_savings);
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created micro-savings deposit amounting to <b><i>₱' . number_format($this->powasSettings->members_micro_savings, 2) . '</i></b> for member id <b>' . $this->selectedBill->member_id . '</b>.';
+                $microSavings = MicroSavings::where('member_id', $this->selectedBill->member_id)
+                    ->orderByDesc('date_recorded')->first();
 
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transanctions', $this->powasID);
+                if ($microSavings != null) {
+                    $msBalance = $microSavings->balance + $this->powasSettings->members_micro_savings;
+                } else {
+                    $msBalance = 0;
+                }
 
-            $microSavingsAccount = ChartOfAccounts::where('account_type', 'LIABILITY')->where('account_name', 'LIKE', '%' . 'MICRO-SAVINGS' . '%')->first();
-            if (!$microSavingsAccount) {
-                throw new \Exception('Chart of Accounts error: MICRO-SAVINGS account not found.');
+                MicroSavings::create([
+                    'savings_id' => CustomNumberFactory::getRandomID(),
+                    'powas_id' => $this->powasID,
+                    'member_id' => $this->selectedBill->member_id,
+                    'recorded_by' => Auth::user()->user_id,
+                    'billing_id' => $this->selectedBill->billing_id,
+                    'deposit' => $this->powasSettings->members_micro_savings,
+                    'balance' => $msBalance + $this->powasSettings->members_micro_savings,
+                    'date_recorded' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created micro-savings deposit amounting to <b><i>₱' . number_format($this->powasSettings->members_micro_savings, 2) . '</i></b> for member id <b>' . $this->selectedBill->member_id . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transanctions', $this->powasID);
+
+                $microSavingsAccount = ChartOfAccounts::where('account_type', 'LIABILITY')->where('account_name', 'LIKE', '%' . 'MICRO-SAVINGS' . '%')->first();
+                if (!$microSavingsAccount) {
+                    throw new \Exception('Chart of Accounts error: MICRO-SAVINGS account not found.');
+                }
+
+                // Reuse the same journal entry number for grouping
+
+                // For Micro-Savings
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $microSavingsAccount->account_number,
+                    'description' => 'Micro-savings deposit from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $this->powasSettings->members_micro_savings,
+                    'transaction_side' => $microSavingsAccount->normal_balance,
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($microSavingsAccount->account_name) . '</i></b> with description <b>"' . 'Micro-Savings Deposit from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->powasSettings->members_micro_savings, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+
+                // For Cash
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $cashOnHandAccount->account_number,
+                    'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Micro-Savings Deposit',
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $this->powasSettings->members_micro_savings,
+                    'transaction_side' => $cashOnHandAccount->normal_balance,
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Micro-Savings Deposit"</b> amounting to <b>&#8369;' . number_format($this->powasSettings->members_micro_savings, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
             }
 
             // Reuse the same journal entry number for grouping
 
-            // For Micro-Savings
+            if ($this->selectedBill->discount_amount > 0) {
+                $discountsAccount = ChartOfAccounts::where('account_type', 'REVENUE')->where('account_name', 'LIKE', '%' . 'DISCOUNT' . '%')->first();
+                if (!$discountsAccount) {
+                    throw new \Exception('Chart of Accounts error: DISCOUNT account not found.');
+                }
+
+                // For Discount
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $discountsAccount->account_number,
+                    'description' => 'Discount for ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $this->selectedBill->discount_amount,
+                    'transaction_side' => $discountsAccount->normal_balance,
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($discountsAccount->account_name) . '</i></b> with description <b>"' . 'Discount for ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->selectedBill->discount_amount, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+            }
+
+            if ($this->withExcessPayments == true) {
+                $excessPaymentAccount = ChartOfAccounts::where('account_type', 'LIABILITY')->where('account_name', 'LIKE', '%' . 'EXCESS PAYMENTS' . '%')->first();
+                if (!$excessPaymentAccount) {
+                    throw new \Exception('Chart of Accounts error: EXCESS PAYMENTS account not found.');
+                }
+
+                // For Excess Payment
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $excessPaymentAccount->account_number,
+                    'description' => 'Excess Payments debited from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $this->excessPaymentFromDB,
+                    'transaction_side' => 'DEBIT',  // Contra side - debiting liability to reduce excess payments
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                // FIXED: Use correct amount (excessPaymentFromDB, not discount_amount)
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($excessPaymentAccount->account_name) . '</i></b> with description <b>"' . 'Excess Payments debited from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->excessPaymentFromDB, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+            }
+
+            $amountPaid = $this->paymentAmount - ($newPenalty + $microSavingsAmount + $this->reconnectionFee) + $this->selectedBill->discount_amount;
+
+            // BillsPayments::create([
+            //     'payment_id' => CustomNumberFactory::getRandomID(),
+            //     'powas_id' => $this->powasID,
+            //     'member_id' => $this->selectedBill->member_id,
+            //     'recorded_by' => Auth::user()->user_id,
+            //     'billing_id' => $this->selectedBill->billing_id,
+            //     'amount_paid' => $amountPaid,
+            //     'date_paid' => $this->paymentDate,
+            // ]); Please take note for the possibility of having excess payments which shall be observed
+
+            // $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created bills payment amounting to <b><i>₱' . number_format($amountPaid, 2) . '</i></b> for billing id <b>' . $this->selectedBill->billing_id . '</b>.';
+
+            // ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+
+            $billsReceivableAccount = ChartOfAccounts::where('account_type', 'ASSET')->where('account_name', 'LIKE', '%' . 'BILLS RECEIVABLES' . '%')->first();
+            if (!$billsReceivableAccount) {
+                throw new \Exception('Chart of Accounts error: BILLS RECEIVABLES account not found.');
+            }
+
+            // For Bills Receivables
             Transactions::create([
                 'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $microSavingsAccount->account_number,
-                'description' => 'Micro-savings deposit from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                'account_number' => $billsReceivableAccount->account_number,
+                'description' => 'Bills Receivables received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
                 'journal_entry_number' => $journalEntryNumber,
-                'amount' => $this->powasSettings->members_micro_savings,
-                'transaction_side' => $microSavingsAccount->normal_balance,
+                'amount' => $this->selectedBill->billing_amount,
+                'transaction_side' => 'CREDIT',  // Contra side - crediting asset to reduce receivables when paid
                 'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
                 'paid_to' => $this->selectedBill->billing_id,
                 'member_id' => $this->selectedBill->member_id,
@@ -1159,17 +1277,28 @@ class PowasBillings extends Component
                 'transaction_date' => $this->paymentDate,
             ]);
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($microSavingsAccount->account_name) . '</i></b> with description <b>"' . 'Micro-Savings Deposit from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->powasSettings->members_micro_savings, 2) . '</b>.';
+            // FIXED: Use billing_amount (the actual transaction amount), not amountPaid
+            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($billsReceivableAccount->account_name) . '</i></b> with description <b>"' . 'Bills Receivables received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->selectedBill->billing_amount, 2) . '</b>.';
 
             ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+
+            if ($this->withReconnectionFee == false) {
+                $this->reconnectionFee = 0;
+            } else {
+                if ($this->powasSettings->reconnection_fee > 0 || $this->powasSettings->reconnection_fee != null) {
+                    $this->reconnectionFee = $this->powasSettings->reconnection_fee;
+                } else {
+                    $this->reconnectionFee = 0;
+                }
+            }
 
             // For Cash
             Transactions::create([
                 'trxn_id' => CustomNumberFactory::getRandomID(),
                 'account_number' => $cashOnHandAccount->account_number,
-                'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Micro-Savings Deposit',
+                'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Bills Receivables',
                 'journal_entry_number' => $journalEntryNumber,
-                'amount' => $this->powasSettings->members_micro_savings,
+                'amount' => $this->paymentAmount - $microSavingsAmount - $this->reconnectionFee - $newPenalty,
                 'transaction_side' => $cashOnHandAccount->normal_balance,
                 'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
                 'paid_to' => $this->selectedBill->billing_id,
@@ -1179,204 +1308,73 @@ class PowasBillings extends Component
                 'transaction_date' => $this->paymentDate,
             ]);
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Micro-Savings Deposit"</b> amounting to <b>&#8369;' . number_format($this->powasSettings->members_micro_savings, 2) . '</b>.';
+            // FIXED: Use actual cash amount from the transaction
+            $cashAmount = $this->paymentAmount - $microSavingsAmount - $this->reconnectionFee - $newPenalty;
+            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Bills Receivables"</b> amounting to <b>&#8369;' . number_format($cashAmount, 2) . '</b>.';
 
             ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-        }
 
-        // Reuse the same journal entry number for grouping
+            $excessPayment = $this->paymentAmount - $this->amountToPay;
 
-        if ($this->selectedBill->discount_amount > 0) {
-            $discountsAccount = ChartOfAccounts::where('account_type', 'REVENUE')->where('account_name', 'LIKE', '%' . 'DISCOUNT' . '%')->first();
-            if (!$discountsAccount) {
-                throw new \Exception('Chart of Accounts error: DISCOUNT account not found.');
+            if ($excessPayment > 0) {
+                $excessPaymentAccount = ChartOfAccounts::where('account_type', 'LIABILITY')->where('account_name', 'LIKE', '%' . 'EXCESS PAYMENTS' . '%')->first();
+                if (!$excessPaymentAccount) {
+                    throw new \Exception('Chart of Accounts error: EXCESS PAYMENTS account not found.');
+                }
+
+                // For Excess Payment
+                Transactions::create([
+                    'trxn_id' => CustomNumberFactory::getRandomID(),
+                    'account_number' => $excessPaymentAccount->account_number,
+                    'description' => 'Excess Payments received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'journal_entry_number' => $journalEntryNumber,
+                    'amount' => $excessPayment,
+                    'transaction_side' => $excessPaymentAccount->normal_balance,
+                    'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
+                    'paid_to' => $this->selectedBill->billing_id,
+                    'member_id' => $this->selectedBill->member_id,
+                    'powas_id' => $this->selectedBill->powas_id,
+                    'recorded_by_id' => Auth::user()->user_id,
+                    'transaction_date' => $this->paymentDate,
+                ]);
+
+                $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($excessPaymentAccount->account_name) . '</i></b> with description <b>"' . 'Excess Payments received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($excessPayment, 2) . '</b>.';
+
+                ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
             }
 
-            // For Discount
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $discountsAccount->account_number,
-                'description' => 'Discount for ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $this->selectedBill->discount_amount,
-                'transaction_side' => $discountsAccount->normal_balance,
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
+            $oldBillStat = '"' . $this->selectedBill->bill_status . '"';
+            $newBillStat =  '"PAID"';
+
+            $this->selectedBill->bill_status = 'PAID';
+            $this->selectedBill->save();
+
+            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> updated bill status from <b><i>' . $oldBillStat . '</i></b> to <b><i>' . $newBillStat . '</i></b> for with billing id <i><u>' . $this->selectedBill->billing_id . '</u></i> and POWAS ID <b>' . $this->powasID . '</b>.';
+
+            ActionLogger::dispatch('update', $log_message, Auth::user()->user_id, 'billings', $this->powasID);
+
+            $this->dispatch('alert', [
+                'message' => 'Payment successfully saved!',
+                'messageType' => 'info',
+                'position' => 'top-right',
             ]);
 
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($discountsAccount->account_name) . '</i></b> with description <b>"' . 'Discount for ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->selectedBill->discount_amount, 2) . '</b>.';
+            $this->dispatch('transaction-added')->to(TransactionsList::class);
 
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-        }
-
-        if ($this->withExcessPayments == true) {
-            $excessPaymentAccount = ChartOfAccounts::where('account_type', 'LIABILITY')->where('account_name', 'LIKE', '%' . 'EXCESS PAYMENTS' . '%')->first();
-            if (!$excessPaymentAccount) {
-                throw new \Exception('Chart of Accounts error: EXCESS PAYMENTS account not found.');
-            }
-
-            // For Excess Payment
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $excessPaymentAccount->account_number,
-                'description' => 'Excess Payments debited from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $this->excessPaymentFromDB,
-                'transaction_side' => 'DEBIT',  // Contra side - debiting liability to reduce excess payments
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
+            $this->reset([
+                'paymentDate',
+                'afterDuePenalty',
+                'reconnectionFee',
+                'paymentAmount',
             ]);
+            $this->showingAddPaymentModal = false;
+            $this->showingConfirmSaveModal = false;
 
-            // FIXED: Use correct amount (excessPaymentFromDB, not discount_amount)
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($excessPaymentAccount->account_name) . '</i></b> with description <b>"' . 'Excess Payments debited from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->excessPaymentFromDB, 2) . '</b>.';
-
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-        }
-
-        $amountPaid = $this->paymentAmount - ($newPenalty + $microSavingsAmount + $this->reconnectionFee) + $this->selectedBill->discount_amount;
-
-        // BillsPayments::create([
-        //     'payment_id' => CustomNumberFactory::getRandomID(),
-        //     'powas_id' => $this->powasID,
-        //     'member_id' => $this->selectedBill->member_id,
-        //     'recorded_by' => Auth::user()->user_id,
-        //     'billing_id' => $this->selectedBill->billing_id,
-        //     'amount_paid' => $amountPaid,
-        //     'date_paid' => $this->paymentDate,
-        // ]); Please take note for the possibility of having excess payments which shall be observed
-
-        // $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created bills payment amounting to <b><i>₱' . number_format($amountPaid, 2) . '</i></b> for billing id <b>' . $this->selectedBill->billing_id . '</b>.';
-
-        // ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-
-        $billsReceivableAccount = ChartOfAccounts::where('account_type', 'ASSET')->where('account_name', 'LIKE', '%' . 'BILLS RECEIVABLES' . '%')->first();
-        if (!$billsReceivableAccount) {
-            throw new \Exception('Chart of Accounts error: BILLS RECEIVABLES account not found.');
-        }
-
-        // For Bills Receivables
-        Transactions::create([
-            'trxn_id' => CustomNumberFactory::getRandomID(),
-            'account_number' => $billsReceivableAccount->account_number,
-            'description' => 'Bills Receivables received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-            'journal_entry_number' => $journalEntryNumber,
-            'amount' => $this->selectedBill->billing_amount,
-            'transaction_side' => 'CREDIT',  // Contra side - crediting asset to reduce receivables when paid
-            'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-            'paid_to' => $this->selectedBill->billing_id,
-            'member_id' => $this->selectedBill->member_id,
-            'powas_id' => $this->selectedBill->powas_id,
-            'recorded_by_id' => Auth::user()->user_id,
-            'transaction_date' => $this->paymentDate,
-        ]);
-
-        // FIXED: Use billing_amount (the actual transaction amount), not amountPaid
-        $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($billsReceivableAccount->account_name) . '</i></b> with description <b>"' . 'Bills Receivables received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($this->selectedBill->billing_amount, 2) . '</b>.';
-
-        ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-
-        if ($this->withReconnectionFee == false) {
-            $this->reconnectionFee = 0;
-        } else {
-            if ($this->powasSettings->reconnection_fee > 0 || $this->powasSettings->reconnection_fee != null) {
-                $this->reconnectionFee = $this->powasSettings->reconnection_fee;
+            if ($this->printAllReceipts == false) {
+                $this->showingConfirmPrintModal = true;
             } else {
-                $this->reconnectionFee = 0;
+                $this->printAllReceipts = false;
             }
-        }
-
-        // For Cash
-        Transactions::create([
-            'trxn_id' => CustomNumberFactory::getRandomID(),
-            'account_number' => $cashOnHandAccount->account_number,
-            'description' => 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Bills Receivables',
-            'journal_entry_number' => $journalEntryNumber,
-            'amount' => $this->paymentAmount - $microSavingsAmount - $this->reconnectionFee - $newPenalty,
-            'transaction_side' => $cashOnHandAccount->normal_balance,
-            'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-            'paid_to' => $this->selectedBill->billing_id,
-            'member_id' => $this->selectedBill->member_id,
-            'powas_id' => $this->selectedBill->powas_id,
-            'recorded_by_id' => Auth::user()->user_id,
-            'transaction_date' => $this->paymentDate,
-        ]);
-
-        // FIXED: Use actual cash amount from the transaction
-        $cashAmount = $this->paymentAmount - $microSavingsAmount - $this->reconnectionFee - $newPenalty;
-        $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($cashOnHandAccount->account_name) . '</i></b> with description <b>"' . 'Cash received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . ' for Bills Receivables"</b> amounting to <b>&#8369;' . number_format($cashAmount, 2) . '</b>.';
-
-        ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-
-        $excessPayment = $this->paymentAmount - $this->amountToPay;
-
-        if ($excessPayment > 0) {
-            $excessPaymentAccount = ChartOfAccounts::where('account_type', 'LIABILITY')->where('account_name', 'LIKE', '%' . 'EXCESS PAYMENTS' . '%')->first();
-            if (!$excessPaymentAccount) {
-                throw new \Exception('Chart of Accounts error: EXCESS PAYMENTS account not found.');
-            }
-
-            // For Excess Payment
-            Transactions::create([
-                'trxn_id' => CustomNumberFactory::getRandomID(),
-                'account_number' => $excessPaymentAccount->account_number,
-                'description' => 'Excess Payments received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'journal_entry_number' => $journalEntryNumber,
-                'amount' => $excessPayment,
-                'transaction_side' => $excessPaymentAccount->normal_balance,
-                'received_from' => $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename,
-                'paid_to' => $this->selectedBill->billing_id,
-                'member_id' => $this->selectedBill->member_id,
-                'powas_id' => $this->selectedBill->powas_id,
-                'recorded_by_id' => Auth::user()->user_id,
-                'transaction_date' => $this->paymentDate,
-            ]);
-
-            $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> created transaction for <b><i>' . strtoupper($excessPaymentAccount->account_name) . '</i></b> with description <b>"' . 'Excess Payments received from ' . $this->selectedMember->lastname . ', ' . $this->selectedMember->firstname . ' ' . $this->selectedMember->middlename . '"</b> amounting to <b>&#8369;' . number_format($excessPayment, 2) . '</b>.';
-
-            ActionLogger::dispatch('create', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
-        }
-
-        $oldBillStat = '"' . $this->selectedBill->bill_status . '"';
-        $newBillStat =  '"PAID"';
-
-        $this->selectedBill->bill_status = 'PAID';
-        $this->selectedBill->save();
-
-        $log_message = '<b><u>' . Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname . '</u></b> updated bill status from <b><i>' . $oldBillStat . '</i></b> to <b><i>' . $newBillStat . '</i></b> for with billing id <i><u>' . $this->selectedBill->billing_id . '</u></i> and POWAS ID <b>' . $this->powasID . '</b>.';
-
-        ActionLogger::dispatch('update', $log_message, Auth::user()->user_id, 'billings', $this->powasID);
-
-        $this->dispatch('alert', [
-            'message' => 'Payment successfully saved!',
-            'messageType' => 'info',
-            'position' => 'top-right',
-        ]);
-
-        $this->dispatch('transaction-added')->to(TransactionsList::class);
-
-        $this->reset([
-            'paymentDate',
-            'afterDuePenalty',
-            'reconnectionFee',
-            'paymentAmount',
-        ]);
-        $this->showingAddPaymentModal = false;
-        $this->showingConfirmSaveModal = false;
-
-        if ($this->printAllReceipts == false) {
-            $this->showingConfirmPrintModal = true;
-        } else {
-            $this->printAllReceipts = false;
-        }
-
         } catch (\Exception $e) {
             $this->dispatch('alert', [
                 'message' => 'Error: ' . $e->getMessage(),

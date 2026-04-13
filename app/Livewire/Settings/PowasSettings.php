@@ -31,6 +31,17 @@ class PowasSettings extends Component
         'powasSettings.penalty_per_day' => ['required', 'numeric'],
         'powasSettings.reconnection_fee' => ['required', 'numeric'],
         'powasSettings.land_owners_id' => ['nullable'],
+        'powasSettings.atp_number' => ['nullable', 'string'],
+        'powasSettings.atp_date_issued' => ['nullable', 'date'],
+        'powasSettings.atp_valid_until' => ['nullable', 'date'],
+        'powasSettings.printer_name' => ['nullable', 'string'],
+        'powasSettings.printer_address' => ['nullable', 'string'],
+        'powasSettings.printer_tin' => ['nullable', 'string'],
+        'powasSettings.printer_accreditation_no' => ['nullable', 'string'],
+        'powasSettings.printer_accreditation_date' => ['nullable', 'date'],
+        'powasSettings.serial_number_start' => ['nullable', 'string'],
+        'powasSettings.serial_number_end' => ['nullable', 'string'],
+        'powasSettings.current_serial_number' => ['nullable', 'string'],
     ];
 
     protected $validationAttributes = [
@@ -47,6 +58,17 @@ class PowasSettings extends Component
         'powasSettings.penalty_per_day' => 'penalty per day',
         'powasSettings.reconnection_fee' => 'reconnection fee',
         'powasSettings.land_owners_id' => 'land owner\'s account number',
+        'powasSettings.atp_number' => 'ATP number',
+        'powasSettings.atp_date_issued' => 'ATP date issued',
+        'powasSettings.atp_valid_until' => 'ATP valid until',
+        'powasSettings.printer_name' => 'printer name',
+        'powasSettings.printer_address' => 'printer address',
+        'powasSettings.printer_tin' => 'printer TIN',
+        'powasSettings.printer_accreditation_no' => 'printer accreditation no.',
+        'powasSettings.printer_accreditation_date' => 'printer accreditation date',
+        'powasSettings.serial_number_start' => 'serial number start',
+        'powasSettings.serial_number_end' => 'serial number end',
+        'powasSettings.current_serial_number' => 'current serial number',
     ];
 
     public function mount($powas_id)
@@ -84,6 +106,17 @@ class PowasSettings extends Component
             'land_owners_id' => $powasPref->land_owners_id,
             'bill_paper_size' => $powasPref->bill_paper_size,
             'receipt_paper_size' => $powasPref->receipt_paper_size,
+            'atp_number' => $powasPref->atp_number,
+            'atp_date_issued' => $powasPref->atp_date_issued,
+            'atp_valid_until' => $powasPref->atp_valid_until,
+            'printer_name' => $powasPref->printer_name,
+            'printer_address' => $powasPref->printer_address,
+            'printer_tin' => $powasPref->printer_tin,
+            'printer_accreditation_no' => $powasPref->printer_accreditation_no,
+            'printer_accreditation_date' => $powasPref->printer_accreditation_date,
+            'serial_number_start' => $powasPref->serial_number_start,
+            'serial_number_end' => $powasPref->serial_number_end,
+            'current_serial_number' => $powasPref->current_serial_number,
         ]);
 
         foreach ($this->powasSettings as $key => $value) {
@@ -174,6 +207,16 @@ class PowasSettings extends Component
         }
         if ($this->oldValues['land_owners_id'] != $this->powasSettings['land_owners_id']) {
             $this->newValues['land_owners_id'] = $this->powasSettings['land_owners_id'];
+        }
+        $atpFields = [
+            'atp_number', 'atp_date_issued', 'atp_valid_until', 'printer_name', 'printer_address',
+            'printer_tin', 'printer_accreditation_no', 'printer_accreditation_date',
+            'serial_number_start', 'serial_number_end', 'current_serial_number'
+        ];
+        foreach ($atpFields as $field) {
+            if ($this->oldValues[$field] != $this->powasSettings[$field]) {
+                $this->newValues[$field] = $this->powasSettings[$field];
+            }
         }
     }
 }

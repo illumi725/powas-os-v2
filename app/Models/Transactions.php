@@ -20,6 +20,7 @@ class Transactions extends Model
         'trxn_id',
         'account_number',
         'description',
+        'or_number',
         'journal_entry_number',
         'amount',
         'transaction_side',

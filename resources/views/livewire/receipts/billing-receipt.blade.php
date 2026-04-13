@@ -123,8 +123,11 @@ $duplicates = ['Original Copy'];
 
         <div class="text-center mb-3">
             <hr style="border-style: solid;">
-            <span class="font-black jetbrains">{{ __('RECEIPT') }}</span>
+            <span class="font-black jetbrains">{{ __('OFFICIAL RECEIPT') }}</span>
             <hr style="border-style: solid;">
+            @if($powasSettings->current_serial_number)
+            <span class="jetbrains x-small-text">OR No.: <b>{{ $powasSettings->current_serial_number }}</b></span>
+            @endif
         </div>
 
         {{-- Content --}}
@@ -300,6 +303,24 @@ $duplicates = ['Original Copy'];
             <span class="jetbrains x-small-text">&copy;
                 {{ date('Y') . ' ' . config('app.name') }}</span>
         </div>
+        {{-- BIR ATP Footer --}}
+        @if ($powasSettings->printer_name)
+        <div class="border-t border-black mt-2 pt-1" style="font-size: 7px;">
+            <div class="text-center jetbrains">Printed by: {{ $powasSettings->printer_name }}</div>
+            @if($powasSettings->printer_address)<div class="text-center jetbrains">{{ $powasSettings->printer_address }}</div>@endif
+            <div class="text-center jetbrains">
+                @if($powasSettings->printer_tin)TIN: {{ $powasSettings->printer_tin }} @endif
+                @if($powasSettings->printer_accreditation_no)/ Accreditation No.: {{ $powasSettings->printer_accreditation_no }}@endif
+            </div>
+            <div class="text-center jetbrains">
+                @if($powasSettings->atp_number)ATP No.: {{ $powasSettings->atp_number }}@endif
+                @if($powasSettings->atp_valid_until) / Valid Until: {{ \Carbon\Carbon::parse($powasSettings->atp_valid_until)->format('m/d/Y') }}@endif
+            </div>
+            @if($powasSettings->serial_number_start && $powasSettings->serial_number_end)
+            <div class="text-center jetbrains">Series: {{ $powasSettings->serial_number_start }}&ndash;{{ $powasSettings->serial_number_end }}</div>
+            @endif
+        </div>
+        @endif
     </div>
     @endforeach
     <div class="text-center py-4">
@@ -333,7 +354,7 @@ $duplicates = ['Original Copy'];
             </div>
 
             <div class="text-center">
-                <span class="font-black jetbrains">{{ __('RECEIPT') }}</span>
+                <span class="font-black jetbrains">{{ __('OFFICIAL RECEIPT') }}</span>
             </div>
             <div class="grid grid-cols-2">
                 <div class="" style="font-size: 8px;">
@@ -474,6 +495,24 @@ $duplicates = ['Original Copy'];
                     </span>
                 </div>
             </div>
+            {{-- BIR ATP Footer --}}
+            @if ($powasSettings->printer_name)
+            <div class="border-t border-black mt-1 pt-1 text-center" style="font-size: 5px;">
+                <div class="jetbrains">{{ $powasSettings->printer_name }}</div>
+                @if($powasSettings->printer_address)<div class="jetbrains">{{ $powasSettings->printer_address }}</div>@endif
+                <div class="jetbrains">
+                    @if($powasSettings->printer_tin)TIN: {{ $powasSettings->printer_tin }}@endif
+                    @if($powasSettings->printer_accreditation_no) / Accr. No.: {{ $powasSettings->printer_accreditation_no }}@endif
+                </div>
+                <div class="jetbrains">
+                    @if($powasSettings->atp_number)ATP: {{ $powasSettings->atp_number }}@endif
+                    @if($powasSettings->atp_valid_until) / Until: {{ \Carbon\Carbon::parse($powasSettings->atp_valid_until)->format('m/d/Y') }}@endif
+                </div>
+                @if($powasSettings->serial_number_start && $powasSettings->serial_number_end)
+                <div class="jetbrains">Series: {{ $powasSettings->serial_number_start }}&ndash;{{ $powasSettings->serial_number_end }}</div>
+                @endif
+            </div>
+            @endif
         </div>
 
         @if ($duplicate == 'Original Copy')

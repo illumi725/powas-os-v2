@@ -95,6 +95,7 @@ Route::middleware([
     // Route::middleware('role:admin|secretary|treasurer')->group(function () {
     Route::get('/transaction/{powasID}/{transactionMonth}', [TransactionsListController::class, 'transactions'])->name('transactions');
     Route::get('/accounting/{powasID}/{transactionMonth}', [TransactionsListController::class, 'accounting'])->name('accounting');
+    Route::get('/books-of-accounts/{powasID}', [TransactionsListController::class, 'booksOfAccounts'])->name('books-of-accounts');
     Route::get('/voucher/print/{powasID}/{voucherID?}', [TransactionsListController::class, 'printVoucher'])->name('print-voucher');
     Route::get('/allowance-attachment', \App\Livewire\Voucher\AllowanceAttachment::class)->name('allowance-attachment');
     Route::get('/printing-expenses-attachment', \App\Livewire\Voucher\PrintingExpensesAttachment::class)->name('printing-expenses-attachment');

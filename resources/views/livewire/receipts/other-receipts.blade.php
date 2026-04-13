@@ -60,7 +60,7 @@
 
         <div class="text-center">
             <hr style="border-style: solid;">
-            <span class="font-black jetbrains">{{ __('RECEIPT') }}</span>
+            <span class="font-black jetbrains">{{ __('OFFICIAL RECEIPT') }}</span>
             <hr style="border-style: solid;">
         </div>
 
@@ -165,6 +165,25 @@
         <div class="text-center jetbrains">
             &copy; {{ date('Y') . ' ' . config('app.name') }}
         </div>
+        {{-- BIR ATP Footer --}}
+        @php $atpSettings = \App\Models\PowasSettings::where('powas_id', $powasID)->first(); @endphp
+        @if($atpSettings && $atpSettings->printer_name)
+        <div class="border-t border-black mt-2 pt-1" style="font-size: 7px;">
+            <div class="text-center jetbrains">Printed by: {{ $atpSettings->printer_name }}</div>
+            @if($atpSettings->printer_address)<div class="text-center jetbrains">{{ $atpSettings->printer_address }}</div>@endif
+            <div class="text-center jetbrains">
+                @if($atpSettings->printer_tin)TIN: {{ $atpSettings->printer_tin }} @endif
+                @if($atpSettings->printer_accreditation_no)/ Accreditation No.: {{ $atpSettings->printer_accreditation_no }}@endif
+            </div>
+            <div class="text-center jetbrains">
+                @if($atpSettings->atp_number)ATP No.: {{ $atpSettings->atp_number }}@endif
+                @if($atpSettings->atp_valid_until) / Valid Until: {{ \Carbon\Carbon::parse($atpSettings->atp_valid_until)->format('m/d/Y') }}@endif
+            </div>
+            @if($atpSettings->serial_number_start && $atpSettings->serial_number_end)
+            <div class="text-center jetbrains">Series: {{ $atpSettings->serial_number_start }}&ndash;{{ $atpSettings->serial_number_end }}</div>
+            @endif
+        </div>
+        @endif
     </div>
     {{-- @endforeach --}}
 

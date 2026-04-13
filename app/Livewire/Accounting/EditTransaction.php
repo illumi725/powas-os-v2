@@ -212,173 +212,132 @@ class EditTransaction extends Component
     public function updateTransaction()
     {
         DB::transaction(function () {
-            // Get member ID if applicable
+            $correctionDate = $this->transactionDate ?? Carbon::now()->format('Y-m-d');
+            $newJournalEntryNumber = CustomNumberFactory::journalEntryNumber($this->powasID, $correctionDate);
+            $correctedByName = Auth::user()->userinfo
+                ? Auth::user()->userinfo->lastname . ', ' . Auth::user()->userinfo->firstname
+                : Auth::user()->name;
+
+            // Resolve member ID from the typed name
             $memberID = null;
+            $queryMembers = PowasMembers::join('powas_applications', 'powas_members.application_id', '=', 'powas_applications.application_id')
+                ->selectRaw('CONCAT(powas_applications.lastname, ", ", powas_applications.firstname, " ", powas_applications.middlename) AS fullName, powas_members.member_id')
+                ->get();
             $memberFullNames = [];
-
-            if (strlen($this->receiveFromOrPaidTo) != 0 || $this->receiveFromOrPaidTo != '') {
-                $queryMembers = PowasMembers::join('powas_applications', 'powas_members.application_id', '=', 'powas_applications.application_id')
-                    ->selectRaw('CONCAT(powas_applications.lastname, ", ", powas_applications.firstname, " ", powas_applications.middlename) AS fullName, powas_members.member_id')
-                    ->get();
-
-                foreach ($queryMembers as $key => $value) {
-                    $memberFullNames[$value->fullName] = $value->member_id;
-                }
-
-                if (isset($memberFullNames[$this->receiveFromOrPaidTo])) {
-                    $memberID = $memberFullNames[$this->receiveFromOrPaidTo];
-                }
+            foreach ($queryMembers as $m) {
+                $memberFullNames[$m->fullName] = $m->member_id;
+            }
+            if (isset($memberFullNames[$this->receiveFromOrPaidTo])) {
+                $memberID = $memberFullNames[$this->receiveFromOrPaidTo];
             }
 
-            // Update all transaction rows for this journal entry
-            foreach ($this->originalTransactions as $transaction) {
-                $description = '';
-                
-                // Reconstruct description based on account and type
-                if ($transaction->account_number == 101) {
-                    // Cash account
-                    if ($this->transactionType == 'receipts') {
-                        $description = 'Cash received from ' . $this->receiveFromOrPaidTo . ' for ' . strtoupper($this->transactionDescription);
-                    } else {
-                        $description = 'Cash paid to ' . $this->receiveFromOrPaidTo . ' for ' . strtoupper($this->transactionDescription);
-                    }
+            // STEP 1 – Reversing entries (flip DEBIT <-> CREDIT for each original line)
+            foreach ($this->originalTransactions as $original) {
+                $reverseSide = $original->transaction_side === 'DEBIT' ? 'CREDIT' : 'DEBIT';
+                Transactions::create([
+                    'trxn_id'              => CustomNumberFactory::getRandomID(),
+                    'account_number'       => $original->account_number,
+                    'description'          => '[REVERSAL of JE#' . $this->journalEntryNumber . '] ' . $original->description . ' — Corrected by ' . $correctedByName,
+                    'or_number'            => $original->or_number,
+                    'journal_entry_number' => $newJournalEntryNumber,
+                    'amount'               => $original->amount,
+                    'transaction_side'     => $reverseSide,
+                    'received_from'        => $original->received_from,
+                    'paid_to'              => $original->paid_to,
+                    'member_id'            => $original->member_id,
+                    'powas_id'             => $this->powasID,
+                    'recorded_by_id'       => Auth::user()->user_id,
+                    'transaction_date'     => $correctionDate,
+                ]);
+            }
+
+            // STEP 2 – Corrected replacement entries (same sides as original, new values)
+            $correctionJENumber = CustomNumberFactory::journalEntryNumber($this->powasID, $correctionDate);
+            foreach ($this->originalTransactions as $original) {
+                $accountRecord = ChartOfAccounts::find($original->account_number);
+                $accountNameStr = $accountRecord ? $accountRecord->account_name : 'Unknown Account';
+                if ($original->account_number == 101) {
+                    $desc = ($this->transactionType === 'receipts')
+                        ? 'Cash received from ' . $this->receiveFromOrPaidTo . ' for ' . strtoupper($this->transactionDescription)
+                        : 'Cash paid to ' . $this->receiveFromOrPaidTo . ' for ' . strtoupper($this->transactionDescription);
                 } else {
-                    // Main account
-                    $accountRecord = ChartOfAccounts::find($transaction->account_number);
-                    $accountName = $accountRecord ? $accountRecord->account_name : 'Unknown Account';
-                    if ($this->transactionType == 'receipts') {
-                        $description = $accountName . ' received from ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
-                    } else {
-                        $description = $accountName . ' paid to ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
-                    }
+                    $desc = ($this->transactionType === 'receipts')
+                        ? $accountNameStr . ' received from ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription
+                        : $accountNameStr . ' paid to ' . $this->receiveFromOrPaidTo . ' for ' . $this->transactionDescription;
                 }
-
-                $transaction->update([
-                    'description' => $description,
-                    'amount' => $this->transactionAmount,
-                    'received_from' => strtoupper($this->receiveFromOrPaidTo),
-                    'paid_to' => strtoupper($this->receiveFromOrPaidTo),
-                    'member_id' => $memberID,
-                    'transaction_date' => $this->transactionDate,
+                Transactions::create([
+                    'trxn_id'              => CustomNumberFactory::getRandomID(),
+                    'account_number'       => $original->account_number,
+                    'description'          => '[CORRECTION of JE#' . $this->journalEntryNumber . '] ' . $desc,
+                    'or_number'            => $original->or_number,
+                    'journal_entry_number' => $correctionJENumber,
+                    'amount'               => $this->transactionAmount,
+                    'transaction_side'     => $original->transaction_side,
+                    'received_from'        => strtoupper($this->receiveFromOrPaidTo),
+                    'paid_to'              => strtoupper($this->receiveFromOrPaidTo),
+                    'member_id'            => $memberID,
+                    'powas_id'             => $this->powasID,
+                    'recorded_by_id'       => Auth::user()->user_id,
+                    'transaction_date'     => $correctionDate,
                 ]);
             }
 
-            // Update related records
-            $firstTransaction = $this->originalTransactions->first();
-
-            // Update IssuedReceipts if exists
-            $issuedReceipt = null;
-            foreach ($this->originalTransactions as $trxn) {
-                $foundReceipt = IssuedReceipts::where('trxn_id', $trxn->trxn_id)->first();
-                if ($foundReceipt) {
-                    $issuedReceipt = $foundReceipt;
-                    break;
+            // STEP 3 – Replace voucher receipt image if provided
+            if ($this->receiptImage) {
+                $voucher = null;
+                foreach ($this->originalTransactions as $trxn) {
+                    $foundVoucher = Vouchers::where('trxn_id', $trxn->trxn_id)->first();
+                    if ($foundVoucher) { $voucher = $foundVoucher; break; }
                 }
-            }
-            
-            if ($issuedReceipt) {
-                $issuedReceipt->update([
-                    'description' => strtoupper($this->transactionDescription),
-                    'transaction_date' => $this->transactionDate,
-                ]);
-            }
-
-            // Update Voucher if exists
-            // Iterate through all transactions to find the one linked to a voucher
-            $voucher = null;
-            foreach ($this->originalTransactions as $trxn) {
-                $foundVoucher = Vouchers::where('trxn_id', $trxn->trxn_id)->first();
-                if ($foundVoucher) {
-                    $voucher = $foundVoucher;
-                    break;
-                }
-            }
-
-            if ($voucher) {
-                $voucher->update([
-                    'amount' => $this->transactionAmount,
-                    'received_by' => strtoupper($this->receiveFromOrPaidTo),
-                    'voucher_date' => $this->transactionDate,
-                ]);
-
-                // Update VoucherParticulars
-                $voucherParticulars = VouchersParticulars::where('voucher_id', $voucher->voucher_id)->first();
-                if ($voucherParticulars) {
-                    $voucherParticulars->update([
-                        'description' => strtoupper($this->transactionDescription),
-                    ]);
-                }
-
-                // Update VoucherExpenseReceipts if new image uploaded
-                if ($this->receiptImage) {
+                if ($voucher) {
                     $voucherReceipt = VoucherExpenseReceipts::where('voucher_id', $voucher->voucher_id)->first();
-                    
-                    // Delete old image
                     if ($voucherReceipt && $voucherReceipt->receipt_path) {
                         Storage::disk('public')->delete('voucher_receipts/' . $voucherReceipt->receipt_path);
                     }
-
-                    // Store new image
                     $this->receiptImage->storeAs('voucher_receipts', $voucher->voucher_id . '.' . $this->receiptImage->extension(), 'public');
-
-                    if ($voucherReceipt) {
-                        $voucherReceipt->update([
-                            'receipt_path' => $voucher->voucher_id . '.' . $this->receiptImage->extension(),
-                        ]);
-                    } else {
-                        VoucherExpenseReceipts::create([
-                            'voucher_id' => $voucher->voucher_id,
-                            'receipt_path' => $voucher->voucher_id . '.' . $this->receiptImage->extension(),
-                        ]);
-                    }
+                    $newPath = $voucher->voucher_id . '.' . $this->receiptImage->extension();
+                    $voucherReceipt
+                        ? $voucherReceipt->update(['receipt_path' => $newPath])
+                        : VoucherExpenseReceipts::create(['voucher_id' => $voucher->voucher_id, 'receipt_path' => $newPath]);
                 }
             }
 
-            // Log the edit action
+            // STEP 4 – Audit log
             $changes = [];
             if ($this->originalAmount != $this->transactionAmount) {
                 $changes[] = 'amount from ₱' . number_format($this->originalAmount, 2) . ' to ₱' . number_format($this->transactionAmount, 2);
             }
-            if ($this->originalDate != $this->transactionDate) {
-                $changes[] = 'date from ' . Carbon::parse($this->originalDate)->format('M d, Y') . ' to ' . Carbon::parse($this->transactionDate)->format('M d, Y');
+            if ($this->originalDate != $correctionDate) {
+                $changes[] = 'date from ' . Carbon::parse($this->originalDate)->format('M d, Y') . ' to ' . Carbon::parse($correctionDate)->format('M d, Y');
             }
             if (!str_contains($this->originalDescription, $this->transactionDescription)) {
                 $changes[] = 'description';
             }
-
-            $changesText = !empty($changes) ? 'Changed ' . implode(', ', $changes) : 'Updated transaction details';
-
-            $userLastname = Auth::user()->userinfo ? Auth::user()->userinfo->lastname : Auth::user()->name;
-            $userFirstname = Auth::user()->userinfo ? Auth::user()->userinfo->firstname : '';
-            
+            $changesText = !empty($changes) ? 'Changed ' . implode(', ', $changes) : 'Correction via reversing entry';
             $accountRecordForLog = ChartOfAccounts::find($this->accountName);
             $accountNameForLog = $accountRecordForLog ? $accountRecordForLog->account_name : 'Unknown Account';
-
-            $log_message = '<b><u>' . $userLastname . ', ' . $userFirstname . '</u></b> edited transaction for <b><i>' . strtoupper($accountNameForLog) . '</i></b> (Journal Entry: ' . $this->journalEntryNumber . '). ' . $changesText . '.';
-
-            ActionLogger::dispatch('update', $log_message, Auth::user()->user_id, 'transactions', $this->powasID);
+            ActionLogger::dispatch(
+                'update',
+                '<b><u>' . $correctedByName . '</u></b> issued reversing+correction entries for JE#' . $this->journalEntryNumber . ' (<b><i>' . strtoupper($accountNameForLog) . '</i></b>). ' . $changesText . '. New Correction JE#: ' . $correctionJENumber,
+                Auth::user()->user_id,
+                'transactions',
+                $this->powasID
+            );
         });
 
         $this->dispatch('alert', [
-            'message' => 'Transaction successfully updated!',
+            'message' => 'Correction posted as reversing+correcting journal entries. Original entry is preserved.',
             'messageType' => 'success',
             'position' => 'top-right',
         ]);
-        
+
         $this->showingConfirmEditTransactionModal = false;
         $this->dispatch('transaction-updated');
-        
-        // Reset form
+
         $this->reset([
-            'journalEntryNumber',
-            'transactionType',
-            'accountName',
-            'transactionAmount',
-            'transactionDescription',
-            'receiptImage',
-            'existingReceiptImage',
-            'transactionDate',
-            'receiveFromOrPaidTo',
+            'journalEntryNumber', 'transactionType', 'accountName',
+            'transactionAmount', 'transactionDescription', 'receiptImage',
+            'existingReceiptImage', 'transactionDate', 'receiveFromOrPaidTo',
             'originalTransactions',
         ]);
     }

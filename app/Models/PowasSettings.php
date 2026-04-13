@@ -27,6 +27,17 @@ class PowasSettings extends Model
         'land_owners_id',
         'bill_paper_size',
         'receipt_paper_size',
+        'atp_number',
+        'atp_date_issued',
+        'atp_valid_until',
+        'printer_name',
+        'printer_address',
+        'printer_tin',
+        'printer_accreditation_no',
+        'printer_accreditation_date',
+        'serial_number_start',
+        'serial_number_end',
+        'current_serial_number',
     ];
 
     public function powassettings(): BelongsTo

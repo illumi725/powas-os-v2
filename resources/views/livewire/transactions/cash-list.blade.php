@@ -12,6 +12,13 @@
                 wire:loading.attr="disabled">
                 {{ __('Financial Statement') }}
             </x-button-link>
+
+            <x-button-link id="booksLink"
+                href="{{ route('books-of-accounts', ['powasID' => $powasID]) }}"
+                target="_blank"
+                wire:loading.attr="disabled">
+                {{ __('Books of Accounts') }}
+            </x-button-link>
         </div>
         <div class="w-full md:flex md:justify-end md:items-center gap-2">
             <x-label class="block md:inline" value="{{ __('Transaction Month: ') }}" />

@@ -787,14 +787,9 @@
                         @endphp
                         {{ number_format($checking, 2) }}
                     </span>
-                    @if (Auth::user()->hasRole('treasurer|admin') && abs($checking) > 0)
-                        <div class="mt-2 no-print">
-                            <x-button 
-                                wire:click="autoBalanceFS" 
-                                wire:confirm="Are you sure you want to auto-balance the Financial Statement? This will create an adjustment transaction."
-                                class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1">
-                                Auto Balance
-                            </x-button>
+                    @if (abs($checking) > 0)
+                        <div class="mt-2 no-print text-red-600 text-xs italic">
+                            <i class="fa fa-exclamation-triangle"></i> Out of Balance. Please review transaction entries for discrepancies.
                         </div>
                     @endif
                 </div>
