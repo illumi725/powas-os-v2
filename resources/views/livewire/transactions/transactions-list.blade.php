@@ -155,7 +155,7 @@
 
                                 <td class="text-center py-1">
                                     @foreach ($transaction as $item)
-                                        <div>
+                                        <div class="{{ $item->transaction_side == 'CREDIT' ? 'ml-8' : '' }}">
                                             <span>
                                                 {{ $item->account_number }}
                                             </span>
@@ -216,7 +216,7 @@
                                 <td class="text-center py-1">
                                     <div class="flex justify-center gap-2">
                                         @can('edit transaction')
-                                            <button wire:click="$dispatch('showEdit', { journalEntryNumber: '{{ $journalEntryNumber }}' })" 
+                                            <button wire:click="$dispatch('showEdit', { journalEntryNumber: '{{ $journalEntryNumber }}', date: '{{ $transaction[0]->transaction_date }}' })" 
                                                 class="font-bold text-indigo-600 hover:text-indigo-800" 
                                                 title="Edit Transaction">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline">

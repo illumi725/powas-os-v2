@@ -151,8 +151,8 @@
                                 <td class="px-3 py-1.5 whitespace-nowrap font-mono text-gray-500">{{ $e['journal_entry_number'] }}</td>
                                 <td class="px-3 py-1.5 whitespace-nowrap font-mono">{{ $e['or_number'] ?? '—' }}</td>
                                 <td class="px-3 py-1.5">{{ $e['account_number'] }}</td>
-                                <td class="px-3 py-1.5">{{ $e['account_name'] }}</td>
-                                <td class="px-3 py-1.5 break-words">{{ $e['description'] }}</td>
+                                <td class="px-3 py-1.5 {{ $e['credit'] !== null ? 'pl-8 text-gray-600' : '' }}">{{ $e['account_name'] }}</td>
+                                <td class="px-3 py-1.5 break-words {{ $e['credit'] !== null ? 'pl-8 text-gray-600' : '' }}">{{ $e['description'] }}</td>
                                 <td class="px-3 py-1.5 text-right font-mono">{{ $e['debit']  !== null ? number_format($e['debit'], 2)  : '' }}</td>
                                 <td class="px-3 py-1.5 text-right font-mono">{{ $e['credit'] !== null ? number_format($e['credit'], 2) : '' }}</td>
                             </tr>

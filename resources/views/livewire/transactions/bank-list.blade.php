@@ -115,7 +115,7 @@
                                 <td class="px-3 py-1">
                                     @foreach ($transaction as $item)
                                         @if ($item->account_number == '102')
-                                            <div>
+                                            <div class="{{ $item->transaction_side == 'CREDIT' ? 'ml-8' : '' }}">
                                                 <span>
                                                     {{ $item->description }}
                                                 </span>

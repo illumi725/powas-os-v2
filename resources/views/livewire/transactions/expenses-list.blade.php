@@ -151,7 +151,7 @@
                                 <td class="text-right px-4 py-2">
                                     <div class="flex justify-end gap-2">
                                         @can('edit transaction')
-                                            <button wire:click="$dispatch('showEdit', { journalEntryNumber: '{{ $journalEntryNumber }}' })" 
+                                            <button wire:click="$dispatch('showEdit', { journalEntryNumber: '{{ $journalEntryNumber }}', date: '{{ $transaction[0]->transaction_date }}' })" 
                                                 class="uppercase text-xs font-bold bg-indigo-300 text-indigo-950 my-2 py-1 px-2 rounded-full shadow-md hover:bg-indigo-400" 
                                                 title="Edit Transaction">
                                                 📝 {{ __('Edit') }}

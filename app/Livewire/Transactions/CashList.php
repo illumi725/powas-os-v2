@@ -87,7 +87,7 @@ class CashList extends Component
                 ->whereMonth('transaction_date', $date->month)
                 ->where('journal_entry_number', $journalEntryNumber->journal_entry_number)
                 ->where('powas_id', $this->powasID)
-                ->orderBy('transaction_side', 'asc')
+            ->orderByRaw("CASE WHEN transaction_side = 'DEBIT' THEN 1 ELSE 2 END")
                 ->orderBy('transaction_date', 'asc')
                 ->orderBy('account_number', 'asc')
                 ->get();
@@ -115,7 +115,7 @@ class CashList extends Component
 
     public function getBalance($accountNumber)
     {
-        $balance = $this->baseBalances[$this->baseBalancesDate][$accountNumber];
+        $balance = $this->baseBalances[$this->baseBalancesDate][$accountNumber] ?? 0;
 
         $currentMonth = Carbon::parse($this->selectedMonthYear)->subDay()->format('Y-m-d');
 

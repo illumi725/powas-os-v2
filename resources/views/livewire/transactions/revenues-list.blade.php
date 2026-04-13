@@ -91,7 +91,7 @@
                                 <td class=" px-3 py-1">
                                     @foreach ($transaction as $item)
                                         @if ($item->transaction_side == 'CREDIT')
-                                            <div>
+                                            <div class="ml-8">
                                                 <span>
                                                     {{ $item->description }}
                                                 </span>

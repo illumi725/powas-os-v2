@@ -68,6 +68,7 @@ class BooksOfAccounts extends Component
             ->whereBetween('transaction_date', [$this->dateFrom, $this->dateTo])
             ->orderBy('transaction_date', 'asc')
             ->orderBy('journal_entry_number', 'asc')
+            ->orderByRaw("CASE WHEN transaction_side = 'DEBIT' THEN 1 ELSE 2 END")
             ->orderBy('account_number', 'asc');
 
         switch ($this->selectedBook) {

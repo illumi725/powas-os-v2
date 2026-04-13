@@ -83,15 +83,22 @@ class EditTransaction extends Component
     }
 
     #[On('showEdit')]
-    public function showEditTransactionModal($journalEntryNumber)
+    public function showEditTransactionModal($journalEntryNumber, $date = null)
     {
         $this->journalEntryNumber = $journalEntryNumber;
         
         // Load transactions for this journal entry
-        $this->originalTransactions = Transactions::where('journal_entry_number', $journalEntryNumber)
-            ->where('powas_id', $this->powasID)
-            ->orderBy('account_number', 'asc')
-            ->get();
+        $query = Transactions::where('journal_entry_number', $journalEntryNumber)
+            ->where('powas_id', $this->powasID);
+            
+        // If a date is provided, filter by its year and month to avoid JEN collisions across years
+        if ($date) {
+            $parsedDate = Carbon::parse($date);
+            $query->whereYear('transaction_date', $parsedDate->year)
+                  ->whereMonth('transaction_date', $parsedDate->month);
+        }
+
+        $this->originalTransactions = $query->orderBy('account_number', 'asc')->get();
 
         if ($this->originalTransactions->isEmpty()) {
             $this->dispatch('alert', [

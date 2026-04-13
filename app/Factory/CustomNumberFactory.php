@@ -45,10 +45,10 @@ class CustomNumberFactory
     public static function voucher($powasID, $recordDate)
     {
         $today = Carbon::parse($recordDate);
-        $datePart = $today->format('m');
+        $datePart = $today->format('y-m');
 
         // Optimization: Use SQL MAX on the substring to get the highest sequence
-        // Format: MM-SEQUENCE (e.g. 01-0001)
+        // Format: YY-MM-SEQUENCE (e.g. 24-01-0001)
         
         $maxSequence = Vouchers::where('powas_id', $powasID)
             ->whereYear('voucher_date', $today->year)
@@ -65,17 +65,17 @@ class CustomNumberFactory
         } elseif ($nextSequence < 1000) {
             return $datePart . '-0' . $nextSequence;
         } else {
-            return $datePart . $nextSequence;
+            return $datePart . '-' . $nextSequence;
         }
     }
 
     public static function journalEntryNumber($powasID, $recordDate)
     {
         $today = Carbon::parse($recordDate);
-        $datePart = $today->format('m');
+        $datePart = $today->format('y-m');
         
         // Optimization: Direct SQL MAX calculation
-        // Format: MM-NNNN (e.g. 01-0052)
+        // Format: YY-MM-NNNN (e.g. 24-01-0052)
         
         $maxSequence = Transactions::where('powas_id', $powasID)
             ->whereYear('transaction_date', $today->year)
