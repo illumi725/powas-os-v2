@@ -20,18 +20,29 @@
     @livewireStyles
     <style>
         @media print {
+            @page {
+                margin: 0.5in;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
             .no-print {
-                display: none;
+                display: none !important;
             }
 
             .page-break {
                 page-break-after: always;
+                break-after: page;
             }
 
             .to-print {
-                width: 8.5in;
-                min-height: 5.5in;
+                width: 100%;
+                max-width: 100%;
                 page-break-inside: avoid;
+                break-inside: avoid;
             }
         }
 

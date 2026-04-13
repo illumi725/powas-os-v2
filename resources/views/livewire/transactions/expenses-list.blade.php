@@ -195,9 +195,8 @@
             </div>
         @endif
     </div>
-</div>
 
-{{-- Bulk Print Vouchers Modal --}}
+    {{-- Bulk Print Vouchers Modal --}}
 <x-dialog-modal wire:model.live="showingBulkPrintModal">
     <x-slot name="title">
         🖨 {{ __('Bulk Print Vouchers') }}
@@ -227,6 +226,18 @@
                 <x-input-error for="bulkPrintEndDate" class="mt-2" />
             </div>
         </div>
+
+        {{-- Step 2: Show the generated link once ready --}}
+        @if ($bulkPrintUrl)
+            <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center justify-between gap-3">
+                <span class="text-sm text-green-800 font-medium">✅ {{ __('Print view ready! Click the button to open.') }}</span>
+                <a href="{{ $bulkPrintUrl }}" target="_blank"
+                   onclick="@this.set('showingBulkPrintModal', false)"
+                   class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150">
+                    🖨 {{ __('Open in New Tab') }}
+                </a>
+            </div>
+        @endif
     </x-slot>
 
     <x-slot name="footer">
@@ -234,20 +245,23 @@
             {{ __('Cancel') }}
         </x-secondary-button>
 
-        <x-button
-            class="ms-3"
-            wire:click="generateBulkPrintUrl"
-            wire:loading.attr="disabled">
-            {{ __('Open Print View') }}
-        </x-button>
+        @if (!$bulkPrintUrl)
+            <x-button
+                class="ms-3"
+                wire:click="generateBulkPrintUrl"
+                wire:loading.attr="disabled">
+                {{ __('Generate URL') }}
+            </x-button>
+        @else
+            <x-button
+                class="ms-3"
+                wire:click="$set('bulkPrintUrl', '')"
+                wire:loading.attr="disabled">
+                {{ __('Reset') }}
+            </x-button>
+        @endif
     </x-slot>
 </x-dialog-modal>
 
-<script>
-    document.addEventListener('livewire:initialized', () => {
-        Livewire.on('open-bulk-print', ({ url }) => {
-            window.open(url, '_blank', 'toolbar=0,scrollbars=1,status=1,resizable=1');
-            @this.set('showingBulkPrintModal', false);
-        });
-    });
-</script>
+</div>
+

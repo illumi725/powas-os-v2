@@ -173,7 +173,5 @@ class ExpensesList extends Component
             'startDate' => $this->bulkPrintStartDate,
             'endDate'   => $this->bulkPrintEndDate,
         ]);
-
-        $this->dispatch('open-bulk-print', url: $this->bulkPrintUrl);
     }
 }
